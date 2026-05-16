@@ -1,7 +1,7 @@
 {
-  "short_name": "Programa ICV",
-  "name": "Igreja Adventista Central de Votuporanga",
-  "description": "Sistema de Programa do Culto",
+  "short_name": "Central Votuporanga",
+  "name": "Central Votuporanga – Programa do Culto",
+  "description": "Sistema de Programa do Culto - Igreja Adventista Central de Votuporanga",
   "icons": [
     { "src": "favicon32.png", "sizes": "32x32", "type": "image/png" },
     { "src": "logo192.png",   "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
@@ -10,6 +10,6 @@
   "start_url": ".",
   "display": "standalone",
   "theme_color": "#1B1340",
-  "background_color": "#0C0A1E",
+  "background_color": "#ffffff",
   "orientation": "portrait"
 }
