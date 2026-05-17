@@ -29,22 +29,29 @@ const COM_INFANTIL = ['Sábado'];
 const COM_EXTRA    = ['Domingo à noite','Quarta-feira','Especial'];
 const VERSICULO    = '"Deus é Espírito, e é necessário que os que o adoram o adorem em espírito e em verdade."';
 const VERSICULO_REF = 'João 4:24';
+const HIST_DIAS    = 7;
 
-const C = {
-  bg:'#0D0B20', surface:'#141230', card:'#1C1945', border:'#2C2768',
-  gold:'#D4A843', goldSoft:'#F0C96A', goldDim:'rgba(212,168,67,0.18)',
-  white:'#F8F5F0', muted:'#9890C8', purple:'#8B6FDC', blue:'#4A90E5',
-  green:'#34BB7A', amber:'#E09020', rose:'#E05555', teal:'#30A8A8',
-  pregadorHint:'rgba(224,144,32,0.15)',
-};
-
-const DEPARTMENTS = {
-  musica:   { label:'Diretor de Música',    icon:'🎵', color:C.purple },
-  anciao:   { label:'Ancião do Dia',         icon:'🙏', color:C.blue   },
-  escola:   { label:'Dir. Escola Sabatina',  icon:'📚', color:C.teal   },
-  infantil: { label:'Ministério Infantil',   icon:'⭐', color:C.green  },
-  pregador: { label:'Pregador do Dia',       icon:'📖', color:C.amber  },
-};
+// ── TEMAS ──────────────────────────────────────────────────────────────────
+function makeColors(dark) {
+  if (dark) return {
+    bg:'#0D0B20', surface:'#141230', card:'#1C1945', border:'#2C2768',
+    gold:'#D4A843', goldSoft:'#F0C96A', goldDim:'rgba(212,168,67,0.18)',
+    white:'#F8F5F0', muted:'#9890C8', purple:'#8B6FDC', blue:'#4A90E5',
+    green:'#34BB7A', amber:'#E09020', rose:'#E05555', teal:'#30A8A8',
+    headerBg:'linear-gradient(160deg, #1E1B4A 0%, #0D0B20 100%)',
+    cardBg:'#1C1945', inputBg:'#141230', sepBg:'rgba(212,168,67,0.2)',
+    isDark: true,
+  };
+  return {
+    bg:'#F4F2FF', surface:'#FFFFFF', card:'#FFFFFF', border:'#D8D0F0',
+    gold:'#B8860B', goldSoft:'#A0740A', goldDim:'rgba(184,134,11,0.12)',
+    white:'#1A1440', muted:'#6B65A0', purple:'#6B4FBB', blue:'#2E6FD4',
+    green:'#1E8A5A', amber:'#B8720A', rose:'#C03838', teal:'#1A8888',
+    headerBg:'linear-gradient(160deg, #EDE8FF 0%, #F4F2FF 100%)',
+    cardBg:'#FFFFFF', inputBg:'#F8F6FF', sepBg:'rgba(184,134,11,0.12)',
+    isDark: false,
+  };
+}
 
 const EMPTY_PROG = () => ({
   equipe:'', musica1:'', musica2:'', musica3:'', hinoInicial:'',
@@ -57,33 +64,55 @@ const EMPTY_PROG = () => ({
   hinoInicialPregador:'', hinoFinalPregador:'', temaSermao:'', fotoPregador:'',
 });
 
+const DEPARTMENTS = {
+  musica:   { label:'Diretor de Música',    icon:'🎵', color:'purple' },
+  anciao:   { label:'Ancião do Dia',         icon:'🙏', color:'blue'   },
+  escola:   { label:'Dir. Escola Sabatina',  icon:'📚', color:'teal'   },
+  infantil: { label:'Ministério Infantil',   icon:'⭐', color:'green'  },
+  pregador: { label:'Pregador do Dia',       icon:'📖', color:'amber'  },
+};
+
+// Quais campos cada dept preenche (para calcular badge)
+const DEPT_KEYS = {
+  musica:   ['equipe','musica1','musica2','hinoInicial','mensMusicalCultoTitulo','mensMusicalCultoCantora','hinoFinalMusica','apeloTitulo','apeloCantora'],
+  anciao:   ['anciaoNome','oracaoJoelhos','oracaoOferta','pregador'],
+  escola:   ['escolaDiretor','escolaCarta','escolaHinoInicial','escolaHinoFinal'],
+  infantil: ['historinha'],
+  pregador: ['hinoInicialPregador','hinoFinalPregador','temaSermao'],
+};
+
+function isDeptPreenchido(deptKey, prog, tipo) {
+  if (!prog) return false;
+  let keys = DEPT_KEYS[deptKey] || [];
+  // musica: adiciona musica3 se dom/quarta, escola fields se sabado
+  if (deptKey === 'musica') {
+    if (COM_EXTRA.includes(tipo)) keys = [...keys, 'musica3'];
+    if (COM_ESCOLA.includes(tipo)) keys = [...keys,'mensMusicalEscolaTitulo','mensMusicalEscolaCantora'];
+  }
+  return keys.some(k => prog[k]?.trim());
+}
+
 function getMusicaFields(tipo, prog) {
   const temExtra  = COM_EXTRA.includes(tipo);
   const temEscola = COM_ESCOLA.includes(tipo);
-  const hintInicial = prog?.hinoInicialPregador?.trim() || '';
-  const hintFinal   = prog?.hinoFinalPregador?.trim()   || '';
-
+  const hintI = prog?.hinoInicialPregador?.trim() || '';
+  const hintF = prog?.hinoFinalPregador?.trim()   || '';
   const fields = [
     { key:'equipe',  label:'Equipe de Louvor', ph:'Ex: João, Maria, Pedro...', type:'textarea' },
     { key:'musica1', label:'1º Hino',          ph:'Ex: Grande é o Senhor'     },
     { key:'musica2', label:'2º Hino',          ph:'Ex: Quão Grande és Tu'     },
   ];
   if (temExtra) fields.push({ key:'musica3', label:'3º Hino', ph:'Ex: Santo, Santo, Santo' });
-
-  fields.push({
-    key:'hinoInicial', label:'Hino Inicial – Último Hino em Pé', ph:'Ex: Castelo Forte – Hino 1',
-    hint: hintInicial ? `Pregador sugeriu: "${hintInicial}"` : ''
-  });
+  fields.push({ key:'hinoInicial', label:'Hino Inicial – Último Hino em Pé', ph:'Ex: Castelo Forte – Hino 1',
+    hint: hintI ? `Pregador sugeriu: "${hintI}"` : '' });
   fields.push({ key:'mensMusicalCultoTitulo',   label:'Mensagem Musical do Culto – Título',        ph:'Ex: Sublime Graça'      });
   fields.push({ key:'mensMusicalCultoCantora',  label:'Mensagem Musical do Culto – Quem cantará',  ph:'Ex: Quarteto Masculino' });
   if (temEscola) {
     fields.push({ key:'mensMusicalEscolaTitulo',  label:'Mens. Musical Escola Sab. – Título', ph:'Ex: Firmeza na Fé' });
     fields.push({ key:'mensMusicalEscolaCantora', label:'Mens. Musical Escola Sab. – Cantor', ph:'Ex: Duo Feminino'  });
   }
-  fields.push({
-    key:'hinoFinalMusica', label:'Hino Final (em pé)', ph:'Ex: Firme nas Promessas – Hino 99',
-    hint: hintFinal ? `Pregador sugeriu: "${hintFinal}"` : ''
-  });
+  fields.push({ key:'hinoFinalMusica', label:'Hino Final (em pé)', ph:'Ex: Firme nas Promessas – Hino 99',
+    hint: hintF ? `Pregador sugeriu: "${hintF}"` : '' });
   fields.push({ key:'apeloTitulo',  label:'Mensagem Musical de Apelo – Título', ph:'Ex: Volta ao Lar'   });
   fields.push({ key:'apeloCantora', label:'Mensagem Musical de Apelo – Cantor', ph:'Ex: Duo Feminino'   });
   return fields;
@@ -101,22 +130,19 @@ const FIELDS_ESCOLA   = [
   { key:'escolaHinoInicial', label:'Hino Inicial',      ph:'Ex: Castelo Forte – Hino 1'         },
   { key:'escolaHinoFinal',   label:'Hino Final',        ph:'Ex: Firmeza na Fé – Hino 23'        },
 ];
-const FIELDS_INFANTIL = [
-  { key:'historinha', label:'Historinha Infantil – Responsável', ph:'Ex: Ir. Claudia Mendes' },
-];
+const FIELDS_INFANTIL = [{ key:'historinha', label:'Historinha Infantil – Responsável', ph:'Ex: Ir. Claudia Mendes' }];
 const FIELDS_PREGADOR = [
   { key:'hinoInicialPregador', label:'Hino Inicial – Último Hino em Pé', ph:'Ex: Castelo Forte – Hino 1'        },
   { key:'hinoFinalPregador',   label:'Hino Final (em pé)',               ph:'Ex: Firme nas Promessas – Hino 99' },
   { key:'temaSermao',          label:'Título do Sermão',                 ph:'Ex: A Graça que Transforma'        },
   { key:'fotoPregador',        label:'Foto do Pregador',                 type:'foto'                            },
 ];
-
-function getFieldsByDept(deptKey, tipo, prog) {
-  if (deptKey === 'musica')   return getMusicaFields(tipo, prog);
-  if (deptKey === 'anciao')   return FIELDS_ANCIAO;
-  if (deptKey === 'escola')   return FIELDS_ESCOLA;
-  if (deptKey === 'infantil') return FIELDS_INFANTIL;
-  if (deptKey === 'pregador') return FIELDS_PREGADOR;
+function getFieldsByDept(k, tipo, prog) {
+  if (k==='musica')   return getMusicaFields(tipo, prog);
+  if (k==='anciao')   return FIELDS_ANCIAO;
+  if (k==='escola')   return FIELDS_ESCOLA;
+  if (k==='infantil') return FIELDS_INFANTIL;
+  if (k==='pregador') return FIELDS_PREGADOR;
   return [];
 }
 
@@ -126,137 +152,217 @@ function formatDate(iso) {
     { weekday:'long', day:'2-digit', month:'long', year:'numeric' });
 }
 function newCulto(nome, data, tipo) {
-  return { id: Date.now().toString(), nome, data, tipo, programa: EMPTY_PROG() };
+  return { id: Date.now().toString(), nome, data, tipo, programa: EMPTY_PROG(), criadoEm: Date.now() };
 }
 function progresso(prog) {
   if (!prog) return 0;
   const vals = Object.values(prog).filter(v => typeof v === 'string' && v.trim());
   return Math.round((vals.length / Object.keys(EMPTY_PROG()).length) * 100);
 }
+function isCultoPassado(culto) {
+  if (!culto.data) return false;
+  const d = new Date(culto.data + 'T23:59:59');
+  return d < new Date();
+}
+function diasDesdePassado(culto) {
+  if (!culto.data) return 0;
+  const d = new Date(culto.data + 'T23:59:59');
+  return Math.floor((Date.now() - d.getTime()) / (1000*60*60*24));
+}
 
-const s = {
-  root:     { minHeight:'100vh', background:C.bg, fontFamily:"'DM Sans', sans-serif", color:C.white, paddingBottom:70 },
-  header:   { background:`linear-gradient(160deg, #1E1B4A 0%, ${C.bg} 100%)`, borderBottom:`1px solid ${C.border}`, padding:'28px 22px 24px', display:'flex', alignItems:'flex-start', gap:18 },
-  headerTxt:{ flex:1 },
-  eyebrow:  { fontSize:13, fontWeight:600, color:C.gold, letterSpacing:2, textTransform:'uppercase', marginBottom:4 },
-  titleMain:{ fontFamily:"'Cormorant Garamond', serif", fontSize:28, fontWeight:700, color:C.white, lineHeight:1.2 },
-  titleSub: { fontSize:15, color:C.muted, marginTop:5 },
-  versiculo:{ fontFamily:"'Cormorant Garamond', serif", fontSize:15, fontStyle:'italic', color:C.muted, marginTop:12, lineHeight:1.7 },
-  versRef:  { color:C.gold, fontStyle:'normal', fontSize:14, fontWeight:600 },
-  listTop:  { display:'flex', alignItems:'center', justifyContent:'space-between', padding:'26px 22px 16px' },
-  listLbl:  { fontSize:12, letterSpacing:2, textTransform:'uppercase', color:C.muted, fontWeight:600 },
-  btnNovo:  { background:C.gold, color:'#0D0B20', border:'none', borderRadius:12, padding:'12px 22px', fontSize:15, fontWeight:700, cursor:'pointer' },
-  empty:    { textAlign:'center', color:C.muted, fontSize:17, padding:'56px 28px', lineHeight:2.4 },
-  cultoCard:   { background:C.card, border:`1px solid ${C.border}`, borderRadius:18, display:'flex', overflow:'hidden', marginBottom:14 },
-  cultoAccent: { width:6, flexShrink:0 },
-  cultoBody:   { flex:1, padding:'20px 18px', cursor:'pointer' },
-  cultoNome:   { fontFamily:"'Cormorant Garamond', serif", fontSize:24, fontWeight:700, color:C.white, marginBottom:8 },
-  cultoBadge:  { display:'inline-block', background:C.goldDim, color:C.gold, borderRadius:20, padding:'4px 14px', fontSize:13, fontWeight:600 },
-  cultoData:   { fontSize:14, color:C.muted, marginLeft:10, textTransform:'capitalize' },
-  cultoBar:    { height:5, background:C.border, borderRadius:4, marginTop:14, overflow:'hidden' },
-  cultoPct:    { fontSize:13, fontWeight:600, marginTop:6 },
-  cultoActions:{ display:'flex', flexDirection:'column', borderLeft:`1px solid ${C.border}` },
-  btnEdit:     { flex:1, background:'transparent', border:'none', borderBottom:`1px solid ${C.border}`, color:C.muted, padding:'0 16px', cursor:'pointer', fontSize:18 },
-  btnDel:      { flex:1, background:'transparent', border:'none', color:C.rose, padding:'0 16px', cursor:'pointer', fontSize:18 },
-  deptGrid: { display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, padding:'0 22px' },
-  deptCard: { background:C.card, border:`2px solid ${C.border}`, borderRadius:18, padding:'24px 12px', display:'flex', flexDirection:'column', alignItems:'center', gap:12, cursor:'pointer' },
-  deptIcon: { fontSize:34 },
-  deptName: { fontSize:15, fontWeight:600, textAlign:'center', lineHeight:1.5 },
-  btnVerProg: { display:'block', margin:'24px auto 0', background:'transparent', border:`2px solid ${C.gold}`, color:C.gold, borderRadius:16, padding:'16px 38px', fontSize:17, fontWeight:600, cursor:'pointer', fontFamily:"'DM Sans',sans-serif" },
-  overlay:   { position:'fixed', inset:0, background:'rgba(8,6,22,0.96)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:500, padding:22 },
-  senhaBox:  { background:C.card, border:`1px solid ${C.border}`, borderRadius:24, padding:'38px 30px', width:'100%', maxWidth:380, textAlign:'center' },
-  senhaTitle:{ fontFamily:"'Cormorant Garamond', serif", fontSize:26, fontWeight:700, color:C.goldSoft, marginBottom:10, marginTop:16 },
-  senhaSub:  { fontSize:16, color:C.muted, marginBottom:28, lineHeight:1.7 },
-  senhaInput:{ width:'100%', background:C.surface, border:`2px solid ${C.border}`, borderRadius:14, padding:'16px', fontSize:28, color:C.white, textAlign:'center', letterSpacing:14, fontFamily:"'DM Sans',sans-serif", outline:'none', marginBottom:14, boxSizing:'border-box' },
-  senhaErr:  { color:C.rose, fontSize:16, minHeight:26, marginBottom:12 },
-  modal:        { background:C.card, border:`1px solid ${C.border}`, borderRadius:22, padding:'32px 28px', width:'100%', maxWidth:380 },
-  modalTitle:   { fontFamily:"'Cormorant Garamond', serif", fontSize:24, fontWeight:700, color:C.white, marginBottom:12 },
-  modalText:    { fontSize:16, color:C.muted, lineHeight:1.7, marginBottom:24 },
-  modalBtns:    { display:'flex', gap:12 },
-  btnMdCancel:  { flex:1, background:C.surface, border:`1px solid ${C.border}`, color:C.muted, borderRadius:12, padding:'14px', fontSize:16, cursor:'pointer', fontFamily:"'DM Sans',sans-serif" },
-  btnMdConfirm: { flex:1, background:C.rose, border:'none', color:'#fff', borderRadius:12, padding:'14px', fontSize:16, cursor:'pointer', fontFamily:"'DM Sans',sans-serif" },
-  deptHeader:  { padding:'24px 22px', borderBottom:`1px solid ${C.border}`, background:C.surface },
-  backBtn:     { background:'rgba(255,255,255,0.08)', border:'none', color:C.muted, borderRadius:10, padding:'9px 18px', fontSize:15, cursor:'pointer', marginBottom:18, display:'inline-block', fontFamily:"'DM Sans',sans-serif" },
-  formArea:    { padding:'24px 22px' },
-  fieldGroup:  { marginBottom:24 },
-  fieldLabel:  { display:'block', fontSize:13, fontWeight:600, color:C.muted, marginBottom:10, letterSpacing:0.8, textTransform:'uppercase' },
-  fieldHint:   { fontSize:13, color:C.amber, marginBottom:8, fontStyle:'italic', background:'rgba(224,144,32,0.12)', borderRadius:8, padding:'8px 12px', border:`1px solid rgba(224,144,32,0.3)` },
-  input:       { width:'100%', background:C.surface, border:`2px solid ${C.border}`, borderRadius:14, padding:'15px 18px', fontSize:17, color:C.white, fontFamily:"'DM Sans',sans-serif", outline:'none', boxSizing:'border-box' },
-  textarea:    { width:'100%', background:C.surface, border:`2px solid ${C.border}`, borderRadius:14, padding:'15px 18px', fontSize:17, color:C.white, fontFamily:"'DM Sans',sans-serif", outline:'none', boxSizing:'border-box', resize:'vertical', minHeight:100 },
-  infoBox:     { background:'rgba(123,95,204,0.14)', border:`1px solid rgba(123,95,204,0.35)`, borderRadius:14, padding:'16px 18px', fontSize:15, color:'#C0B0F0', marginBottom:22, lineHeight:1.8 },
-  infoAmber:   { background:'rgba(212,136,26,0.12)', border:`1px solid rgba(212,136,26,0.35)`, borderRadius:14, padding:'16px 18px', fontSize:15, color:'#F0C880', marginBottom:22, lineHeight:1.8 },
-  infoTeal:    { background:'rgba(42,149,149,0.12)', border:`1px solid rgba(42,149,149,0.35)`, borderRadius:14, padding:'16px 18px', fontSize:15, color:'#90D8D8', marginBottom:22, lineHeight:1.8 },
-  btnSalvar:   { width:'100%', border:'none', borderRadius:16, padding:'18px', fontSize:18, fontWeight:700, cursor:'pointer', marginTop:12, fontFamily:"'DM Sans',sans-serif" },
-  btnPrimary:  { background:`linear-gradient(135deg, ${C.gold} 0%, #B8862A 100%)`, color:'#0D0B20', border:'none', borderRadius:16, padding:'16px 28px', fontSize:17, fontWeight:700, cursor:'pointer', fontFamily:"'DM Sans',sans-serif", width:'100%', marginTop:12 },
-  conflictBar: { background:'rgba(224,85,85,0.12)', borderTop:`3px solid ${C.rose}`, padding:'16px 22px', fontSize:15, color:'#F5A0A0', lineHeight:1.7 },
-  progHeader:  { background:`linear-gradient(160deg, #1E1B4A 0%, ${C.bg} 100%)`, borderBottom:`1px solid ${C.border}`, padding:'28px 22px' },
-  progTitle:   { fontFamily:"'Cormorant Garamond', serif", fontSize:30, fontWeight:700, color:C.goldSoft, lineHeight:1.1, marginTop:10 },
-  progData:    { fontSize:16, color:C.muted, marginTop:6, textTransform:'capitalize' },
-  anciaoDestaque: { marginTop:16, background:'rgba(74,144,229,0.15)', border:`1px solid rgba(74,144,229,0.4)`, borderRadius:14, padding:'14px 18px', display:'flex', alignItems:'center', gap:12 },
-  anciaoLabel: { fontSize:13, fontWeight:600, color:C.blue, letterSpacing:1, textTransform:'uppercase' },
-  anciaoValor: { fontSize:22, fontWeight:700, color:C.white },
-  progBody:    { padding:'22px', display:'flex', flexDirection:'column', gap:14 },
-  pSection:    { background:C.card, border:`1px solid ${C.border}`, borderRadius:18, padding:'22px 20px', borderLeft:'5px solid' },
-  pSecTitle:   { fontFamily:"'Cormorant Garamond', serif", fontSize:22, fontWeight:700, marginBottom:18 },
-  separador:   { background:`linear-gradient(135deg, rgba(212,168,67,0.15), rgba(212,168,67,0.25))`, border:`1px solid rgba(212,168,67,0.5)`, borderRadius:14, padding:'16px 20px', textAlign:'center', fontFamily:"'Cormorant Garamond', serif", fontSize:26, fontWeight:700, color:C.gold, letterSpacing:3 },
-  pRow:        { display:'flex', flexDirection:'column', marginBottom:18, paddingBottom:18, borderBottom:`1px solid ${C.border}` },
-  pRowLast:    { display:'flex', flexDirection:'column' },
-  pLabel:      { fontSize:13, fontWeight:600, color:C.muted, letterSpacing:1.2, textTransform:'uppercase', marginBottom:6 },
-  pValue:      { fontSize:19, color:C.white, lineHeight:1.5 },
-  pEmpty:      { fontSize:17, color:C.border, fontStyle:'italic' },
-  tipoGrid:       { display:'flex', flexWrap:'wrap', gap:10 },
-  tipoBadge:      { background:C.surface, border:`2px solid ${C.border}`, color:C.muted, borderRadius:20, padding:'10px 18px', fontSize:15, cursor:'pointer', fontFamily:"'DM Sans',sans-serif" },
-  tipoBadgeActive:{ background:C.goldDim, border:`2px solid ${C.gold}`, color:C.gold, fontWeight:700 },
-  loading: { display:'flex', alignItems:'center', justifyContent:'center', height:'100vh', background:C.bg, flexDirection:'column', gap:22 },
-  footer: { textAlign:'center', marginTop:36, fontSize:13, color:C.border, padding:'0 22px', letterSpacing:0.4, lineHeight:2.2 },
-  sectionLbl: { padding:'26px 22px 14px', fontSize:12, letterSpacing:2, textTransform:'uppercase', color:C.muted, fontWeight:600 },
-};
+// Formata programa para WhatsApp
+function formatarParaWhatsApp(culto) {
+  const p = { ...EMPTY_PROG(), ...culto.programa };
+  const tipo = culto.tipo;
+  const temEscola   = COM_ESCOLA.includes(tipo);
+  const temInfantil = COM_INFANTIL.includes(tipo);
+  const temExtra    = COM_EXTRA.includes(tipo);
+  const hinoI = p.hinoInicial || p.hinoInicialPregador || '—';
+  const hinoF = p.hinoFinalMusica || p.hinoFinalPregador || '—';
+
+  let txt = `✝ *${culto.nome}*\n`;
+  if (culto.data) txt += `_${formatDate(culto.data)}_\n`;
+  txt += `_${culto.tipo}_\n`;
+  if (p.anciaoNome) txt += `\n🙏 *Ancião:* ${p.anciaoNome}`;
+  txt += `\n`;
+
+  if (temEscola) {
+    txt += `\n📚 *ESCOLA SABATINA*\n`;
+    if (p.escolaDiretor)     txt += `Diretor: ${p.escolaDiretor}\n`;
+    if (p.escolaCarta)       txt += `Carta: ${p.escolaCarta}\n`;
+    if (p.escolaHinoInicial) txt += `Hino Inicial: ${p.escolaHinoInicial}\n`;
+    if (p.mensMusicalEscolaTitulo) txt += `Mens. Musical: ${p.mensMusicalEscolaTitulo}${p.mensMusicalEscolaCantora?' — '+p.mensMusicalEscolaCantora:''}\n`;
+    if (p.escolaHinoFinal)   txt += `Hino Final: ${p.escolaHinoFinal}\n`;
+  }
+
+  txt += `\n✝ *CULTO DIVINO*\n`;
+  txt += `\n🎵 *LOUVOR*\n`;
+  if (p.equipe) txt += `Equipe: ${p.equipe}\n`;
+  txt += `1º Hino: ${p.musica1||'—'}\n`;
+  txt += `2º Hino: ${p.musica2||'—'}\n`;
+  if (temExtra) txt += `3º Hino: ${p.musica3||'—'}\n`;
+  txt += `Hino Inicial 🧍: ${hinoI}\n`;
+
+  txt += `\n🙏 *ORAÇÃO DE JOELHOS*\n${p.oracaoJoelhos||'—'}\n`;
+  txt += `\n💰 *ORAÇÃO DAS OFERTAS*\n${p.oracaoOferta||'—'}\n`;
+
+  if (temInfantil) txt += `\n⭐ *HISTORINHA INFANTIL*\n${p.historinha||'—'}\n`;
+
+  if (p.mensMusicalCultoTitulo) txt += `\n🎶 *MENSAGEM MUSICAL*\n${p.mensMusicalCultoTitulo}${p.mensMusicalCultoCantora?' — '+p.mensMusicalCultoCantora:''}\n`;
+
+  txt += `\n📖 *PREGADOR*\n`;
+  if (p.pregador)   txt += `${p.pregador}\n`;
+  if (p.temaSermao) txt += `Tema: ${p.temaSermao}\n`;
+
+  if (p.apeloTitulo) txt += `\n🕊 *APELO*\n${p.apeloTitulo}${p.apeloCantora?' — '+p.apeloCantora:''}\n`;
+
+  txt += `\n🎵 *HINO FINAL* 🧍\n${hinoF}\n`;
+  txt += `\n_Igreja Adventista Central de Votuporanga_`;
+  return txt;
+}
+
+// ── ESTILOS dinâmicos ──────────────────────────────────────────────────────
+function makeStyles(C) {
+  return {
+    root:     { minHeight:'100vh', background:C.bg, fontFamily:"'DM Sans', sans-serif", color:C.white, paddingBottom:70 },
+    header:   { background:C.headerBg, borderBottom:`1px solid ${C.border}`, padding:'28px 22px 24px', display:'flex', alignItems:'flex-start', gap:18 },
+    headerTxt:{ flex:1 },
+    eyebrow:  { fontSize:13, fontWeight:600, color:C.gold, letterSpacing:2, textTransform:'uppercase', marginBottom:4 },
+    titleMain:{ fontFamily:"'Cormorant Garamond', serif", fontSize:28, fontWeight:700, color:C.white, lineHeight:1.2 },
+    titleSub: { fontSize:15, color:C.muted, marginTop:5 },
+    versiculo:{ fontFamily:"'Cormorant Garamond', serif", fontSize:15, fontStyle:'italic', color:C.muted, marginTop:12, lineHeight:1.7 },
+    versRef:  { color:C.gold, fontStyle:'normal', fontSize:14, fontWeight:600 },
+    themeBtn: { background:'transparent', border:`1.5px solid ${C.border}`, color:C.muted, borderRadius:20, padding:'6px 12px', fontSize:13, cursor:'pointer', fontFamily:"'DM Sans',sans-serif", marginTop:8 },
+
+    listTop:  { display:'flex', alignItems:'center', justifyContent:'space-between', padding:'26px 22px 16px' },
+    listLbl:  { fontSize:12, letterSpacing:2, textTransform:'uppercase', color:C.muted, fontWeight:600 },
+    btnNovo:  { background:C.gold, color: C.isDark?'#0D0B20':'#fff', border:'none', borderRadius:12, padding:'12px 22px', fontSize:15, fontWeight:700, cursor:'pointer' },
+    empty:    { textAlign:'center', color:C.muted, fontSize:17, padding:'56px 28px', lineHeight:2.4 },
+
+    histLabel:{ padding:'8px 22px 4px', fontSize:11, letterSpacing:2, textTransform:'uppercase', color:C.amber, fontWeight:600 },
+
+    cultoCard:   { background:C.card, border:`1px solid ${C.border}`, borderRadius:18, display:'flex', overflow:'hidden', marginBottom:12 },
+    cultoAccent: { width:6, flexShrink:0 },
+    cultoBody:   { flex:1, padding:'18px 16px', cursor:'pointer' },
+    cultoNome:   { fontFamily:"'Cormorant Garamond', serif", fontSize:23, fontWeight:700, color:C.white, marginBottom:6 },
+    cultoBadge:  { display:'inline-block', background:C.goldDim, color:C.gold, borderRadius:20, padding:'3px 12px', fontSize:12, fontWeight:600 },
+    cultoData:   { fontSize:13, color:C.muted, marginLeft:8, textTransform:'capitalize' },
+    cultoBar:    { height:4, background:C.border, borderRadius:4, marginTop:12, overflow:'hidden' },
+    cultoPct:    { fontSize:12, fontWeight:600, marginTop:5 },
+    cultoActions:{ display:'flex', flexDirection:'column', borderLeft:`1px solid ${C.border}` },
+    btnEdit:     { flex:1, background:'transparent', border:'none', borderBottom:`1px solid ${C.border}`, color:C.muted, padding:'0 14px', cursor:'pointer', fontSize:17 },
+    btnDel:      { flex:1, background:'transparent', border:'none', color:C.rose, padding:'0 14px', cursor:'pointer', fontSize:17 },
+
+    deptGrid: { display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, padding:'0 22px' },
+    deptCard: { background:C.card, border:`2px solid ${C.border}`, borderRadius:18, padding:'22px 10px', display:'flex', flexDirection:'column', alignItems:'center', gap:10, cursor:'pointer', position:'relative' },
+    deptIcon: { fontSize:32 },
+    deptName: { fontSize:14, fontWeight:600, textAlign:'center', lineHeight:1.5 },
+    deptBadge:{ position:'absolute', top:8, right:8, background:C.green, borderRadius:20, padding:'2px 8px', fontSize:11, color:'#fff', fontWeight:700 },
+
+    btnVerProg: { display:'block', margin:'22px auto 0', background:'transparent', border:`2px solid ${C.gold}`, color:C.gold, borderRadius:16, padding:'14px 36px', fontSize:16, fontWeight:600, cursor:'pointer', fontFamily:"'DM Sans',sans-serif" },
+    btnShare:   { display:'flex', alignItems:'center', justifyContent:'center', gap:8, margin:'12px auto 0', background:C.green, border:'none', color:'#fff', borderRadius:16, padding:'14px 36px', fontSize:16, fontWeight:600, cursor:'pointer', fontFamily:"'DM Sans',sans-serif", width:'calc(100% - 44px)' },
+    btnCopyLink:{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, margin:'10px auto 0', background:'transparent', border:`2px solid ${C.blue}`, color:C.blue, borderRadius:16, padding:'12px 36px', fontSize:15, fontWeight:600, cursor:'pointer', fontFamily:"'DM Sans',sans-serif", width:'calc(100% - 44px)' },
+
+    overlay:   { position:'fixed', inset:0, background: C.isDark?'rgba(8,6,22,0.96)':'rgba(0,0,0,0.6)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:500, padding:22 },
+    senhaBox:  { background:C.card, border:`1px solid ${C.border}`, borderRadius:24, padding:'36px 28px', width:'100%', maxWidth:380, textAlign:'center' },
+    senhaTitle:{ fontFamily:"'Cormorant Garamond', serif", fontSize:26, fontWeight:700, color:C.gold, marginBottom:10, marginTop:14 },
+    senhaSub:  { fontSize:16, color:C.muted, marginBottom:26, lineHeight:1.7 },
+    senhaInput:{ width:'100%', background:C.surface, border:`2px solid ${C.border}`, borderRadius:14, padding:'16px', fontSize:28, color:C.white, textAlign:'center', letterSpacing:14, fontFamily:"'DM Sans',sans-serif", outline:'none', marginBottom:12, boxSizing:'border-box' },
+    senhaErr:  { color:C.rose, fontSize:16, minHeight:24, marginBottom:10 },
+
+    modal:        { background:C.card, border:`1px solid ${C.border}`, borderRadius:22, padding:'30px 26px', width:'100%', maxWidth:380 },
+    modalTitle:   { fontFamily:"'Cormorant Garamond', serif", fontSize:24, fontWeight:700, color:C.white, marginBottom:10 },
+    modalText:    { fontSize:16, color:C.muted, lineHeight:1.7, marginBottom:22 },
+    modalBtns:    { display:'flex', gap:12 },
+    btnMdCancel:  { flex:1, background:C.surface, border:`1px solid ${C.border}`, color:C.muted, borderRadius:12, padding:'13px', fontSize:16, cursor:'pointer', fontFamily:"'DM Sans',sans-serif" },
+    btnMdConfirm: { flex:1, background:C.rose, border:'none', color:'#fff', borderRadius:12, padding:'13px', fontSize:16, cursor:'pointer', fontFamily:"'DM Sans',sans-serif" },
+
+    deptHeader: { padding:'22px', borderBottom:`1px solid ${C.border}`, background:C.surface },
+    backBtn:    { background: C.isDark?'rgba(255,255,255,0.08)':'rgba(0,0,0,0.06)', border:'none', color:C.muted, borderRadius:10, padding:'8px 16px', fontSize:14, cursor:'pointer', marginBottom:16, display:'inline-block', fontFamily:"'DM Sans',sans-serif" },
+    formArea:   { padding:'22px' },
+    fieldGroup: { marginBottom:22 },
+    fieldLabel: { display:'block', fontSize:13, fontWeight:600, color:C.muted, marginBottom:9, letterSpacing:0.8, textTransform:'uppercase' },
+    fieldHint:  { fontSize:13, color:C.amber, marginBottom:8, background: C.isDark?'rgba(224,144,32,0.12)':'rgba(180,100,0,0.08)', borderRadius:8, padding:'8px 12px', border:`1px solid ${C.amber}44` },
+    input:      { width:'100%', background:C.inputBg, border:`2px solid ${C.border}`, borderRadius:13, padding:'14px 16px', fontSize:17, color:C.white, fontFamily:"'DM Sans',sans-serif", outline:'none', boxSizing:'border-box' },
+    textarea:   { width:'100%', background:C.inputBg, border:`2px solid ${C.border}`, borderRadius:13, padding:'14px 16px', fontSize:17, color:C.white, fontFamily:"'DM Sans',sans-serif", outline:'none', boxSizing:'border-box', resize:'vertical', minHeight:96 },
+    infoBox:    { background: C.isDark?'rgba(123,95,204,0.14)':'rgba(107,79,187,0.08)', border:`1px solid ${C.purple}55`, borderRadius:13, padding:'14px 16px', fontSize:15, color:C.purple, marginBottom:20, lineHeight:1.8 },
+    infoAmber:  { background: C.isDark?'rgba(212,136,26,0.12)':'rgba(180,100,0,0.08)', border:`1px solid ${C.amber}55`, borderRadius:13, padding:'14px 16px', fontSize:15, color:C.amber, marginBottom:20, lineHeight:1.8 },
+    infoTeal:   { background: C.isDark?'rgba(42,149,149,0.12)':'rgba(26,136,136,0.08)', border:`1px solid ${C.teal}55`, borderRadius:13, padding:'14px 16px', fontSize:15, color:C.teal, marginBottom:20, lineHeight:1.8 },
+    btnSalvar:  { width:'100%', border:'none', borderRadius:15, padding:'17px', fontSize:18, fontWeight:700, cursor:'pointer', marginTop:10, fontFamily:"'DM Sans',sans-serif" },
+    btnPrimary: { background:`linear-gradient(135deg, ${C.gold}, #B8862A)`, color: C.isDark?'#0D0B20':'#fff', border:'none', borderRadius:15, padding:'15px 28px', fontSize:17, fontWeight:700, cursor:'pointer', fontFamily:"'DM Sans',sans-serif", width:'100%', marginTop:10 },
+
+    conflictBar:{ background: C.isDark?'rgba(224,85,85,0.12)':'rgba(192,56,56,0.08)', borderTop:`3px solid ${C.rose}`, padding:'14px 22px', fontSize:15, color:C.rose, lineHeight:1.7 },
+    progHeader: { background:C.headerBg, borderBottom:`1px solid ${C.border}`, padding:'26px 22px' },
+    progTitle:  { fontFamily:"'Cormorant Garamond', serif", fontSize:30, fontWeight:700, color:C.gold, lineHeight:1.1, marginTop:10 },
+    progData:   { fontSize:15, color:C.muted, marginTop:5, textTransform:'capitalize' },
+    anciaoBox:  { marginTop:14, background: C.isDark?'rgba(74,144,229,0.15)':'rgba(46,111,212,0.08)', border:`1px solid ${C.blue}44`, borderRadius:14, padding:'13px 16px', display:'flex', alignItems:'center', gap:12 },
+    anciaoLbl:  { fontSize:12, fontWeight:600, color:C.blue, letterSpacing:1, textTransform:'uppercase' },
+    anciaoVal:  { fontSize:21, fontWeight:700, color:C.white },
+    progBody:   { padding:'20px 22px', display:'flex', flexDirection:'column', gap:13 },
+    pSection:   { background:C.card, border:`1px solid ${C.border}`, borderRadius:17, padding:'20px 18px', borderLeft:'5px solid' },
+    pSecTitle:  { fontFamily:"'Cormorant Garamond', serif", fontSize:21, fontWeight:700, marginBottom:16 },
+    separador:  { background:C.sepBg, border:`1px solid ${C.gold}44`, borderRadius:13, padding:'14px 20px', textAlign:'center', fontFamily:"'Cormorant Garamond', serif", fontSize:25, fontWeight:700, color:C.gold, letterSpacing:3 },
+    pRow:       { display:'flex', flexDirection:'column', marginBottom:16, paddingBottom:16, borderBottom:`1px solid ${C.border}` },
+    pRowLast:   { display:'flex', flexDirection:'column' },
+    pLabel:     { fontSize:12, fontWeight:600, color:C.muted, letterSpacing:1.2, textTransform:'uppercase', marginBottom:5 },
+    pValue:     { fontSize:18, color:C.white, lineHeight:1.5 },
+    pEmpty:     { fontSize:16, color:C.border, fontStyle:'italic' },
+    tipoGrid:       { display:'flex', flexWrap:'wrap', gap:10 },
+    tipoBadge:      { background:C.surface, border:`2px solid ${C.border}`, color:C.muted, borderRadius:20, padding:'9px 16px', fontSize:15, cursor:'pointer', fontFamily:"'DM Sans',sans-serif" },
+    tipoBadgeActive:{ background:C.goldDim, border:`2px solid ${C.gold}`, color:C.gold, fontWeight:700 },
+    loading:    { display:'flex', alignItems:'center', justifyContent:'center', height:'100vh', background:C.bg, flexDirection:'column', gap:20 },
+    footer:     { textAlign:'center', marginTop:32, fontSize:12, color:C.muted, padding:'0 22px', lineHeight:2.2 },
+    sectionLbl: { padding:'24px 22px 12px', fontSize:11, letterSpacing:2, textTransform:'uppercase', color:C.muted, fontWeight:600 },
+    toastBox:   { position:'fixed', bottom:30, left:'50%', transform:'translateX(-50%)', background:C.green, color:'#fff', borderRadius:20, padding:'12px 24px', fontSize:15, fontWeight:600, zIndex:999, boxShadow:'0 4px 20px rgba(0,0,0,0.3)', whiteSpace:'nowrap' },
+  };
+}
 
 function PSection({ title, color, children }) {
   return (
-    <div style={{ ...s.pSection, borderLeftColor: color }}>
-      <div style={{ ...s.pSecTitle, color }}>{title}</div>
+    <div style={{ background:'var(--card)', border:`1px solid var(--border)`, borderRadius:17, padding:'20px 18px', borderLeft:`5px solid ${color}`, marginBottom:0 }}>
+      <div style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:21, fontWeight:700, marginBottom:16, color }}>{title}</div>
       {children}
     </div>
   );
 }
-function PRow({ label, value, last, highlight }) {
+function PRow({ label, value, last, highlight, C }) {
+  const rowSt = { display:'flex', flexDirection:'column', ...(last?{}:{ marginBottom:16, paddingBottom:16, borderBottom:`1px solid ${C.border}` }), ...(highlight?{ background:C.isDark?'rgba(224,85,85,0.1)':'rgba(192,56,56,0.06)', borderRadius:8, padding:'8px 10px' }:{}) };
   return (
-    <div style={{ ...(last ? s.pRowLast : s.pRow), ...(highlight ? { background:'rgba(224,85,85,0.1)', borderRadius:10, padding:'10px 12px' } : {}) }}>
-      <span style={s.pLabel}>{label}</span>
-      <span style={s.pValue}>
-        {value || <span style={s.pEmpty}>Não preenchido</span>}
+    <div style={rowSt}>
+      <span style={{ fontSize:12, fontWeight:600, color:C.muted, letterSpacing:1.2, textTransform:'uppercase', marginBottom:5 }}>{label}</span>
+      <span style={{ fontSize:18, color:C.white, lineHeight:1.5 }}>
+        {value || <span style={{ fontSize:16, color:C.border, fontStyle:'italic' }}>Não preenchido</span>}
         {highlight && <span style={{ color:C.rose, fontSize:13, marginLeft:8 }}>⚠ conflito</span>}
       </span>
     </div>
   );
 }
 
-function SenhaModal({ titulo, subtitulo, icon, color, senhaEsperada, onSuccess, onCancel }) {
+function SenhaModal({ titulo, subtitulo, icon, color, senhaEsperada, onSuccess, onCancel, s, C }) {
   const [val, setVal] = useState('');
   const [err, setErr] = useState('');
   const check = () => {
     if (val === senhaEsperada) onSuccess();
-    else { setErr('Senha incorreta. Tente novamente.'); setVal(''); }
+    else { setErr('Senha incorreta.'); setVal(''); }
   };
   return (
     <div style={s.overlay}>
       <div style={s.senhaBox}>
-        <Logo size={60} />
-        <div style={{ ...s.senhaTitle, color: color || C.goldSoft }}>{icon} {titulo}</div>
+        <Logo size={58} />
+        <div style={{ ...s.senhaTitle, color: color || C.gold }}>{icon} {titulo}</div>
         <div style={s.senhaSub}>{subtitulo}</div>
         <input style={s.senhaInput} type="password" maxLength={6} value={val} autoFocus placeholder="••••"
           onChange={e => { setVal(e.target.value); setErr(''); }}
           onKeyDown={e => e.key === 'Enter' && check()} />
         <div style={s.senhaErr}>{err}</div>
         <button style={{ ...s.btnPrimary, marginTop:0 }} onClick={check}>Entrar</button>
-        <button style={{ ...s.btnMdCancel, marginTop:14, width:'100%' }} onClick={onCancel}>Cancelar</button>
+        <button style={{ ...s.btnMdCancel, marginTop:12, width:'100%' }} onClick={onCancel}>Cancelar</button>
       </div>
     </div>
   );
 }
 
-function FotoUpload({ value, onChange }) {
+function FotoUpload({ value, onChange, s, C }) {
   const inputRef = useRef();
   const [uploading, setUploading] = useState(false);
   const handleFile = async (e) => {
@@ -270,12 +376,12 @@ function FotoUpload({ value, onChange }) {
   return (
     <div>
       {value ? (
-        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:14 }}>
-          <img src={value} alt="Pregador" style={{ width:160, height:160, objectFit:'cover', borderRadius:14, border:`2px solid ${C.border}` }} />
-          <button style={{ ...s.btnMdCancel, fontSize:14, padding:'10px 20px' }} onClick={() => onChange('')}>🗑 Remover foto</button>
+        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:12 }}>
+          <img src={value} alt="Pregador" style={{ width:150, height:150, objectFit:'cover', borderRadius:14, border:`2px solid ${C.border}` }} />
+          <button style={{ ...s.btnMdCancel, fontSize:14, padding:'9px 18px' }} onClick={() => onChange('')}>🗑 Remover foto</button>
         </div>
       ) : (
-        <button style={{ width:'100%', background:C.surface, border:`2px dashed ${C.border}`, borderRadius:14, padding:'28px', color:C.muted, fontSize:16, cursor:'pointer', fontFamily:"'DM Sans',sans-serif", lineHeight:1.8 }}
+        <button style={{ width:'100%', background:C.inputBg, border:`2px dashed ${C.border}`, borderRadius:13, padding:'26px', color:C.muted, fontSize:16, cursor:'pointer', fontFamily:"'DM Sans',sans-serif", lineHeight:1.8 }}
           onClick={() => inputRef.current?.click()} disabled={uploading}>
           {uploading ? '⏳ Enviando foto...' : '📷 Toque para escolher a foto do pregador'}
         </button>
@@ -283,6 +389,10 @@ function FotoUpload({ value, onChange }) {
       <input ref={inputRef} type="file" accept="image/*" style={{ display:'none' }} onChange={handleFile} />
     </div>
   );
+}
+
+function Toast({ msg }) {
+  return <div style={{ position:'fixed', bottom:30, left:'50%', transform:'translateX(-50%)', background:'#34BB7A', color:'#fff', borderRadius:20, padding:'12px 24px', fontSize:15, fontWeight:600, zIndex:999, boxShadow:'0 4px 20px rgba(0,0,0,0.3)', whiteSpace:'nowrap' }}>{msg}</div>;
 }
 
 export default function App() {
@@ -301,6 +411,28 @@ export default function App() {
   const [novoData, setNovoData]           = useState('');
   const [novoTipo, setNovoTipo]           = useState(CULTO_TIPOS[0]);
   const [editandoId, setEditandoId]       = useState(null);
+  const [darkMode, setDarkMode]           = useState(true);
+  const [toast, setToast]                 = useState('');
+  const [mostrarHist, setMostrarHist]     = useState(false);
+
+  const C = makeColors(darkMode);
+  const s = makeStyles(C);
+
+  // Salva preferência de tema
+  useEffect(() => {
+    const t = localStorage.getItem('icv-theme');
+    if (t) setDarkMode(t === 'dark');
+  }, []);
+  const toggleTheme = () => {
+    const next = !darkMode;
+    setDarkMode(next);
+    localStorage.setItem('icv-theme', next ? 'dark' : 'light');
+  };
+
+  function showToast(msg) {
+    setToast(msg);
+    setTimeout(() => setToast(''), 2500);
+  }
 
   useEffect(() => {
     const r = ref(db, 'cultos');
@@ -312,11 +444,23 @@ export default function App() {
     return () => unsub();
   }, []);
 
+  // Auto-excluir cultos passados há mais de 7 dias
+  useEffect(() => {
+    cultos.forEach(c => {
+      if (isCultoPassado(c) && diasDesdePassado(c) > HIST_DIAS) {
+        set(ref(db, `cultos/${c.id}`), null);
+      }
+    });
+  }, [cultos]);
+
   const cultoAtivo  = cultos.find(c => c.id === activeCultoId);
   const tipo        = cultoAtivo?.tipo || '';
   const temEscola   = COM_ESCOLA.includes(tipo);
   const temInfantil = COM_INFANTIL.includes(tipo);
   const temExtra    = COM_EXTRA.includes(tipo);
+
+  const cultosAtivos    = cultos.filter(c => !isCultoPassado(c));
+  const cultosHistorico = cultos.filter(c => isCultoPassado(c));
 
   useEffect(() => {
     if (view === 'dept' && cultoAtivo) {
@@ -359,9 +503,9 @@ export default function App() {
   const onMasterOk = () => {
     const { type, id } = masterAction;
     setMasterAction(null);
-    if (type === 'criar')   { setEditandoId(null); setNovoNome(''); setNovoData(''); setNovoTipo(CULTO_TIPOS[0]); setView('novo'); }
-    else if (type === 'editar')  { const c = cultos.find(x=>x.id===id); setEditandoId(id); setNovoNome(c.nome); setNovoData(c.data||''); setNovoTipo(c.tipo); setView('novo'); }
-    else if (type === 'excluir') { setConfirmDelete(id); }
+    if (type==='criar')   { setEditandoId(null); setNovoNome(''); setNovoData(''); setNovoTipo(CULTO_TIPOS[0]); setView('novo'); }
+    else if (type==='editar')  { const c=cultos.find(x=>x.id===id); setEditandoId(id); setNovoNome(c.nome); setNovoData(c.data||''); setNovoTipo(c.tipo); setView('novo'); }
+    else if (type==='excluir') { setConfirmDelete(id); }
   };
 
   const hm  = cultoAtivo?.programa?.hinoInicial?.trim()         || '';
@@ -371,55 +515,90 @@ export default function App() {
   const confHino  = hm && hp && hm !== hp;
   const confFinal = hfm && hfp && hfm !== hfp;
 
+  function compartilharWhatsApp() {
+    if (!cultoAtivo) return;
+    const txt = formatarParaWhatsApp(cultoAtivo);
+    window.open(`https://wa.me/?text=${encodeURIComponent(txt.replace(/\\n/g, '\n'))}`, '_blank');
+  }
+
+  function copiarLink() {
+    const url = `${window.location.origin}?culto=${activeCultoId}`;
+    navigator.clipboard.writeText(url).then(() => showToast('✅ Link copiado!'));
+  }
+
   if (loading) return (
     <div style={s.loading}><Logo size={80}/><div style={{ color:C.muted, fontSize:16 }}>Carregando...</div></div>
   );
+
+  function CultoCardItem({ c, passado }) {
+    const pct = progresso(c.programa);
+    const cor = pct===100?C.green:pct>50?C.amber:C.purple;
+    return (
+      <div style={{ ...s.cultoCard, opacity: passado?0.75:1 }}>
+        <div style={{ ...s.cultoAccent, background:cor }}/>
+        <div style={s.cultoBody} onClick={() => { setActiveCultoId(c.id); setView('cultoDash'); }}>
+          <div style={s.cultoNome}>{c.nome}</div>
+          <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap', marginBottom:8 }}>
+            <span style={s.cultoBadge}>{c.tipo}</span>
+            {c.data && <span style={s.cultoData}>{formatDate(c.data)}</span>}
+            {passado && <span style={{ fontSize:11, color:C.amber, fontWeight:600 }}>📦 histórico</span>}
+          </div>
+          <div style={s.cultoBar}><div style={{ width:`${pct}%`, height:'100%', background:cor, borderRadius:4 }}/></div>
+          <div style={{ ...s.cultoPct, color:cor }}>{pct}% preenchido</div>
+        </div>
+        <div style={s.cultoActions}>
+          <button style={s.btnEdit} onClick={() => setMasterAction({ type:'editar', id:c.id })}>✏️</button>
+          <button style={s.btnDel}  onClick={() => setMasterAction({ type:'excluir', id:c.id })}>🗑</button>
+        </div>
+      </div>
+    );
+  }
 
   // HOME
   if (view === 'home') return (
     <div style={s.root}>
       <header style={s.header}>
-        <Logo size={58}/>
+        <Logo size={56}/>
         <div style={s.headerTxt}>
           <div style={s.eyebrow}>Igreja Adventista do Sétimo Dia</div>
           <div style={s.titleMain}>Central de Votuporanga</div>
           <div style={s.titleSub}>Sistema de Programa do Culto</div>
           <div style={s.versiculo}>{VERSICULO}<br/><span style={s.versRef}>{VERSICULO_REF}</span></div>
+          <button style={s.themeBtn} onClick={toggleTheme}>{darkMode ? '☀️ Tema claro' : '🌙 Tema escuro'}</button>
         </div>
       </header>
+
       <div style={s.listTop}>
         <div style={s.sectionLbl}>Cultos</div>
         <button style={s.btnNovo} onClick={() => setMasterAction({ type:'criar' })}>+ Novo</button>
       </div>
-      {cultos.length === 0 && <div style={s.empty}>Nenhum culto cadastrado.<br/><span style={{ color:C.gold }}>+ Novo</span> para começar.</div>}
+
+      {cultosAtivos.length===0 && cultosHistorico.length===0 && (
+        <div style={s.empty}>Nenhum culto cadastrado.<br/><span style={{ color:C.gold }}>+ Novo</span> para começar.</div>
+      )}
+
       <div style={{ padding:'0 22px' }}>
-        {cultos.slice().reverse().map(c => {
-          const pct = progresso(c.programa);
-          const cor = pct===100?C.green:pct>50?C.amber:C.purple;
-          return (
-            <div key={c.id} style={s.cultoCard}>
-              <div style={{ ...s.cultoAccent, background:cor }}/>
-              <div style={s.cultoBody} onClick={() => { setActiveCultoId(c.id); setView('cultoDash'); }}>
-                <div style={s.cultoNome}>{c.nome}</div>
-                <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap', marginBottom:10 }}>
-                  <span style={s.cultoBadge}>{c.tipo}</span>
-                  {c.data && <span style={s.cultoData}>{formatDate(c.data)}</span>}
-                </div>
-                <div style={s.cultoBar}><div style={{ width:`${pct}%`, height:'100%', background:cor, borderRadius:4 }}/></div>
-                <div style={{ ...s.cultoPct, color:cor }}>{pct}% preenchido</div>
-              </div>
-              <div style={s.cultoActions}>
-                <button style={s.btnEdit} onClick={() => setMasterAction({ type:'editar', id:c.id })}>✏️</button>
-                <button style={s.btnDel}  onClick={() => setMasterAction({ type:'excluir', id:c.id })}>🗑</button>
-              </div>
-            </div>
-          );
-        })}
+        {cultosAtivos.slice().reverse().map(c => <CultoCardItem key={c.id} c={c} passado={false}/>)}
       </div>
+
+      {cultosHistorico.length > 0 && (
+        <>
+          <div style={{ ...s.histLabel, cursor:'pointer', display:'flex', alignItems:'center', gap:8, paddingTop:16 }}
+            onClick={() => setMostrarHist(v => !v)}>
+            📦 Histórico ({cultosHistorico.length}) {mostrarHist ? '▲' : '▼'}
+          </div>
+          {mostrarHist && (
+            <div style={{ padding:'0 22px' }}>
+              {cultosHistorico.slice().reverse().map(c => <CultoCardItem key={c.id} c={c} passado={true}/>)}
+            </div>
+          )}
+        </>
+      )}
+
       {masterAction && (
         <SenhaModal titulo={masterAction.type==='criar'?'Novo Culto':masterAction.type==='editar'?'Editar Culto':'Excluir Culto'}
           subtitulo="Digite a senha master para continuar." icon="🔐" color={C.rose}
-          senhaEsperada={SENHA_MASTER} onSuccess={onMasterOk} onCancel={() => setMasterAction(null)}/>
+          senhaEsperada={SENHA_MASTER} onSuccess={onMasterOk} onCancel={() => setMasterAction(null)} s={s} C={C}/>
       )}
       {confirmDelete && (
         <div style={s.overlay}><div style={s.modal}>
@@ -431,6 +610,7 @@ export default function App() {
           </div>
         </div></div>
       )}
+      {toast && <Toast msg={toast}/>}
       <div style={s.footer}>Igreja Adventista Central de Votuporanga · Sistema de Programa<br/><span style={{ color:C.muted }}>Desenvolvido por Kleber Vicente</span></div>
     </div>
   );
@@ -467,14 +647,14 @@ export default function App() {
   // DASHBOARD
   if (view === 'cultoDash' && cultoAtivo) {
     const depts = Object.entries(DEPARTMENTS).filter(([k]) => {
-      if (k === 'escola')   return temEscola;
-      if (k === 'infantil') return temInfantil;
+      if (k==='escola')   return temEscola;
+      if (k==='infantil') return temInfantil;
       return true;
     });
     return (
       <div style={s.root}>
         <header style={s.header}>
-          <Logo size={50}/>
+          <Logo size={48}/>
           <div style={s.headerTxt}>
             <button style={s.backBtn} onClick={() => setView('home')}>← Cultos</button>
             <div style={s.titleMain}>{cultoAtivo.nome}</div>
@@ -490,18 +670,23 @@ export default function App() {
         )}
         <div style={s.sectionLbl}>Preencher por Departamento</div>
         <div style={s.deptGrid}>
-          {depts.map(([key, d]) => (
-            <button key={key} style={{ ...s.deptCard, borderColor:d.color+'66' }} onClick={() => abrirDept(key)}>
-              <span style={s.deptIcon}>{d.icon}</span>
-              <span style={{ ...s.deptName, color:d.color }}>{d.label}</span>
-            </button>
-          ))}
+          {depts.map(([key, d]) => {
+            const preenchido = isDeptPreenchido(key, cultoAtivo.programa, tipo);
+            return (
+              <button key={key} style={{ ...s.deptCard, borderColor: preenchido ? C.green : d.color+'55' }}
+                onClick={() => abrirDept(key)}>
+                {preenchido && <span style={s.deptBadge}>✓</span>}
+                <span style={s.deptIcon}>{d.icon}</span>
+                <span style={{ ...s.deptName, color: preenchido ? C.green : C[d.color] }}>{d.label}</span>
+              </button>
+            );
+          })}
         </div>
         <button style={s.btnVerProg} onClick={() => setView('programa')}>📋 Ver Programa Completo</button>
         {senhaTarget && (
           <SenhaModal titulo={DEPARTMENTS[senhaTarget].label} subtitulo="Digite a senha para acessar."
-            icon={DEPARTMENTS[senhaTarget].icon} color={DEPARTMENTS[senhaTarget].color}
-            senhaEsperada={SENHA_DEPT} onSuccess={onSenhaOk} onCancel={() => setSenhaTarget(null)}/>
+            icon={DEPARTMENTS[senhaTarget].icon} color={C[DEPARTMENTS[senhaTarget].color]}
+            senhaEsperada={SENHA_DEPT} onSuccess={onSenhaOk} onCancel={() => setSenhaTarget(null)} s={s} C={C}/>
         )}
         <div style={s.footer}>Dados sincronizados em tempo real · Firebase</div>
       </div>
@@ -512,7 +697,7 @@ export default function App() {
   if (view === 'dept' && cultoAtivo && activeDept && localProg) {
     const dept   = DEPARTMENTS[activeDept];
     const fields = getFieldsByDept(activeDept, tipo, cultoAtivo.programa);
-    const btnBg  = savedOk?C.green:saving?C.muted:`linear-gradient(135deg, ${dept.color}, #4A3490)`;
+    const btnBg  = savedOk?C.green:saving?C.muted:`linear-gradient(135deg, ${C[dept.color]}, #4A3490)`;
     const btnTxt = savedOk?'✓ Salvo!':saving?'Salvando...':'Salvar e voltar';
     const ordemInfo = temExtra
       ? '🎵 Ordem: 1º → 2º → 3º Hino → Hino Inicial (em pé) → Mens. Musical → Hino Final (em pé) → Apelo'
@@ -522,16 +707,16 @@ export default function App() {
         <div style={s.deptHeader}>
           <button style={s.backBtn} onClick={() => setView('cultoDash')}>← Voltar sem salvar</button>
           <div style={{ display:'flex', alignItems:'center', gap:14 }}>
-            <span style={{ fontSize:34 }}>{dept.icon}</span>
+            <span style={{ fontSize:32 }}>{dept.icon}</span>
             <div>
-              <div style={{ ...s.titleMain, fontSize:24, color:dept.color }}>{dept.label}</div>
+              <div style={{ ...s.titleMain, fontSize:23, color:C[dept.color] }}>{dept.label}</div>
               <div style={s.titleSub}>{cultoAtivo.nome}</div>
             </div>
           </div>
         </div>
         <div style={s.formArea}>
           {activeDept==='musica'   && <div style={s.infoBox}>{ordemInfo}</div>}
-          {activeDept==='pregador' && <div style={s.infoAmber}>💡 Preencha Hino Inicial e Hino Final para informar o diretor de música. Se os valores divergirem, aparece um aviso de conflito.</div>}
+          {activeDept==='pregador' && <div style={s.infoAmber}>💡 Preencha Hino Inicial e Hino Final para informar o diretor de música. Valores diferentes geram alerta de conflito.</div>}
           {activeDept==='escola'   && <div style={s.infoTeal}>📚 Escola Sabatina — campos exclusivos do culto de sábado.</div>}
           {fields.map(f => (
             <div key={f.key} style={s.fieldGroup}>
@@ -540,13 +725,13 @@ export default function App() {
               {f.type==='textarea' ? (
                 <textarea style={s.textarea} value={localProg[f.key]||''} placeholder={f.ph||''} onChange={e => setLocalProg(p => ({ ...p, [f.key]:e.target.value }))}/>
               ) : f.type==='foto' ? (
-                <FotoUpload value={localProg.fotoPregador||''} onChange={url => setLocalProg(p => ({ ...p, fotoPregador:url }))}/>
+                <FotoUpload value={localProg.fotoPregador||''} onChange={url => setLocalProg(p => ({ ...p, fotoPregador:url }))} s={s} C={C}/>
               ) : (
                 <input style={s.input} value={localProg[f.key]||''} placeholder={f.ph||''} onChange={e => setLocalProg(p => ({ ...p, [f.key]:e.target.value }))}/>
               )}
             </div>
           ))}
-          <button style={{ ...s.btnSalvar, background:btnBg, color:savedOk||saving?'#fff':'#0D0B20' }}
+          <button style={{ ...s.btnSalvar, background:btnBg, color:savedOk||saving?'#fff': C.isDark?'#0D0B20':'#fff' }}
             onClick={salvarPrograma} disabled={saving||savedOk}>{btnTxt}</button>
         </div>
       </div>
@@ -560,106 +745,103 @@ export default function App() {
     const hpi  = prog.hinoInicialPregador.trim();
     const hfmu = prog.hinoFinalMusica.trim();
     const hfpr = prog.hinoFinalPregador.trim();
-    const cHino  = hmi && hpi && hmi !== hpi;
-    const cFinal = hfmu && hfpr && hfmu !== hfpr;
-    const hinoI  = hmi || hpi || '';
-    const hinoF  = hfmu || hfpr || '';
+    const cH   = hmi && hpi && hmi !== hpi;
+    const cF   = hfmu && hfpr && hfmu !== hfpr;
+    const hinoI = hmi || hpi || '';
+    const hinoF = hfmu || hfpr || '';
 
     return (
       <div style={s.root}>
         <div style={s.progHeader}>
           <button style={s.backBtn} onClick={() => setView('cultoDash')}>← Voltar</button>
-          <div style={{ display:'flex', alignItems:'center', gap:18 }}>
-            <Logo size={56}/>
+          <div style={{ display:'flex', alignItems:'center', gap:16 }}>
+            <Logo size={54}/>
             <div>
               <div style={s.eyebrow}>Igreja Adventista do Sétimo Dia</div>
               <div style={s.progTitle}>{cultoAtivo.nome}</div>
               {cultoAtivo.data && <div style={s.progData}>{formatDate(cultoAtivo.data)}</div>}
-              <span style={{ ...s.cultoBadge, marginTop:10, display:'inline-block' }}>{cultoAtivo.tipo}</span>
+              <span style={{ ...s.cultoBadge, marginTop:8, display:'inline-block' }}>{cultoAtivo.tipo}</span>
             </div>
           </div>
           {prog.anciaoNome && (
-            <div style={s.anciaoDestaque}>
-              <span style={{ fontSize:26 }}>🙏</span>
+            <div style={s.anciaoBox}>
+              <span style={{ fontSize:24 }}>🙏</span>
               <div>
-                <div style={s.anciaoLabel}>Ancião Responsável do Dia</div>
-                <div style={s.anciaoValor}>{prog.anciaoNome}</div>
+                <div style={s.anciaoLbl}>Ancião Responsável do Dia</div>
+                <div style={s.anciaoVal}>{prog.anciaoNome}</div>
               </div>
             </div>
           )}
         </div>
 
-        {(cHino||cFinal) && (
+        {(cH||cF) && (
           <div style={s.conflictBar}>
-            {cHino  && <div>⚠ Conflito Hino Inicial: "{hmi}" (música) vs "{hpi}" (pregador)</div>}
-            {cFinal && <div>⚠ Conflito Hino Final: "{hfmu}" (música) vs "{hfpr}" (pregador)</div>}
+            {cH && <div>⚠ Conflito Hino Inicial: "{hmi}" (música) vs "{hpi}" (pregador)</div>}
+            {cF && <div>⚠ Conflito Hino Final: "{hfmu}" (música) vs "{hfpr}" (pregador)</div>}
           </div>
         )}
 
         <div style={s.progBody}>
           {temEscola && (
             <PSection title="📚 Escola Sabatina" color={C.teal}>
-              <PRow label="Diretor do Dia"    value={prog.escolaDiretor}    />
-              <PRow label="Carta Missionária" value={prog.escolaCarta}      />
-              <PRow label="Hino Inicial"      value={prog.escolaHinoInicial}/>
-              <PRow label="Mensagem Musical"  value={prog.mensMusicalEscolaTitulo ? `${prog.mensMusicalEscolaTitulo}${prog.mensMusicalEscolaCantora?' — '+prog.mensMusicalEscolaCantora:''}` : ''}/>
-              <PRow label="Hino Final"        value={prog.escolaHinoFinal}  last/>
+              <PRow label="Diretor do Dia"    value={prog.escolaDiretor}     C={C}/>
+              <PRow label="Carta Missionária" value={prog.escolaCarta}       C={C}/>
+              <PRow label="Hino Inicial"      value={prog.escolaHinoInicial} C={C}/>
+              <PRow label="Mensagem Musical"  value={prog.mensMusicalEscolaTitulo?`${prog.mensMusicalEscolaTitulo}${prog.mensMusicalEscolaCantora?' — '+prog.mensMusicalEscolaCantora:''}`:''}  C={C}/>
+              <PRow label="Hino Final"        value={prog.escolaHinoFinal}   C={C} last/>
             </PSection>
           )}
-
           <div style={s.separador}>✝ Culto Divino</div>
-
           <PSection title="🎵 Louvor" color={C.purple}>
-            {prog.equipe ? <PRow label="Equipe de Louvor" value={prog.equipe}/> : null}
-            <PRow label="1º Hino" value={prog.musica1}/>
-            <PRow label="2º Hino" value={prog.musica2}/>
-            {temExtra && <PRow label="3º Hino" value={prog.musica3}/>}
-            <PRow label="Hino Inicial 🧍 (em pé)" value={hinoI} highlight={cHino} last/>
+            {prog.equipe ? <PRow label="Equipe de Louvor" value={prog.equipe} C={C}/> : null}
+            <PRow label="1º Hino" value={prog.musica1} C={C}/>
+            <PRow label="2º Hino" value={prog.musica2} C={C}/>
+            {temExtra && <PRow label="3º Hino" value={prog.musica3} C={C}/>}
+            <PRow label="Hino Inicial 🧍 (em pé)" value={hinoI} highlight={cH} C={C} last/>
           </PSection>
-
           <PSection title="🙏 Oração Inicial de Joelhos" color={C.blue}>
-            <PRow label="Responsável" value={prog.oracaoJoelhos} last/>
+            <PRow label="Responsável" value={prog.oracaoJoelhos} C={C} last/>
           </PSection>
-
           <PSection title="💰 Oração pelas Ofertas" color={C.blue}>
-            <PRow label="Responsável" value={prog.oracaoOferta} last/>
+            <PRow label="Responsável" value={prog.oracaoOferta} C={C} last/>
           </PSection>
-
           {temInfantil && (
             <PSection title="⭐ Historinha Infantil" color={C.green}>
-              <PRow label="Responsável" value={prog.historinha} last/>
+              <PRow label="Responsável" value={prog.historinha} C={C} last/>
             </PSection>
           )}
-
           <PSection title="🎶 Mensagem Musical do Culto" color={C.purple}>
-            <PRow label="Música"       value={prog.mensMusicalCultoTitulo} />
-            <PRow label="Quem cantará" value={prog.mensMusicalCultoCantora} last/>
+            <PRow label="Música"       value={prog.mensMusicalCultoTitulo}  C={C}/>
+            <PRow label="Quem cantará" value={prog.mensMusicalCultoCantora} C={C} last/>
           </PSection>
-
           <PSection title="📖 Pregador e Tema do Sermão" color={C.amber}>
             {prog.fotoPregador ? (
-              <div style={{ marginBottom:18 }}>
-                <img src={prog.fotoPregador} alt="Pregador" style={{ width:'100%', maxWidth:280, height:200, objectFit:'cover', borderRadius:14, border:`2px solid ${C.border}` }}/>
+              <div style={{ marginBottom:16 }}>
+                <img src={prog.fotoPregador} alt="Pregador" style={{ width:'100%', maxWidth:260, height:190, objectFit:'cover', borderRadius:14, border:`2px solid ${C.border}` }}/>
                 <a href={prog.fotoPregador} target="_blank" rel="noreferrer"
-                  style={{ display:'block', marginTop:10, fontSize:15, color:C.gold, textDecoration:'none', fontWeight:600 }}>
-                  ⬇ Baixar foto para transmissão
-                </a>
+                  style={{ display:'block', marginTop:10, fontSize:15, color:C.gold, textDecoration:'none', fontWeight:600 }}>⬇ Baixar foto para transmissão</a>
               </div>
             ) : null}
-            <PRow label="Pregador do Dia"  value={prog.pregador}  />
-            <PRow label="Título do Sermão" value={prog.temaSermao} last/>
+            <PRow label="Pregador do Dia"  value={prog.pregador}   C={C}/>
+            <PRow label="Título do Sermão" value={prog.temaSermao} C={C} last/>
           </PSection>
-
           <PSection title="🕊 Mensagem Musical de Apelo" color={C.purple}>
-            <PRow label="Música"       value={prog.apeloTitulo} />
-            <PRow label="Quem cantará" value={prog.apeloCantora} last/>
+            <PRow label="Música"       value={prog.apeloTitulo}  C={C}/>
+            <PRow label="Quem cantará" value={prog.apeloCantora} C={C} last/>
           </PSection>
-
           <PSection title="🎵 Hino Final 🧍 (em pé)" color={C.purple}>
-            <PRow label="Hino Final" value={hinoF} highlight={cFinal} last/>
+            <PRow label="Hino Final" value={hinoF} highlight={cF} C={C} last/>
           </PSection>
         </div>
 
+        <button style={s.btnShare} onClick={compartilharWhatsApp}>
+          📲 Compartilhar no WhatsApp
+        </button>
+        <button style={s.btnCopyLink} onClick={copiarLink}>
+          🔗 Copiar link do programa
+        </button>
+
+        {toast && <Toast msg={toast}/>}
         <div style={s.footer}>
           Igreja Adventista Central de Votuporanga · Programa Oficial<br/>
           <span style={{ color:C.muted }}>Desenvolvido por Kleber Vicente</span>
