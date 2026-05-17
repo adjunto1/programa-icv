@@ -230,10 +230,13 @@ function formatDate(iso) {
 function newCulto(nome, data, tipo) {
   return { id: Date.now().toString(), nome, data, tipo, programa: EMPTY_PROG(), criadoEm: Date.now() };
 }
-function progresso(prog) {
+function progressoDepts(prog, tipo) {
   if (!prog) return 0;
-  const vals = Object.values(prog).filter(v => typeof v === 'string' && v.trim());
-  return Math.round((vals.length / Object.keys(EMPTY_PROG()).length) * 100);
+  const depts = ['musica','anciao','pregador'];
+  if (COM_ESCOLA.includes(tipo))   depts.push('escola');
+  if (COM_INFANTIL.includes(tipo)) depts.push('infantil');
+  const preenchidos = depts.filter(k => isDeptPreenchido(k, prog, tipo)).length;
+  return Math.round((preenchidos / depts.length) * 100);
 }
 function isCultoPassado(c) {
   if (!c.data) return false;
@@ -1049,7 +1052,7 @@ export default function App() {
   // ── HOME ──────────────────────────────────────────────────────────────────
   if (view === 'home') {
     function CultoCardItem({ c, passado }) {
-      const pct = progresso(c.programa);
+      const pct = progressoDepts(c.programa, c.tipo);
       const cor = pct===100?C.green:pct>50?C.amber:C.purple;
       return (
         <div style={{ ...s.cultoCard, opacity:passado?0.75:1 }}>
