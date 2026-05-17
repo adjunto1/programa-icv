@@ -653,6 +653,32 @@ useEffect(() => {
     });
     return () => unsub();
   }, []);
+  useEffect(() => {
+  if (Object.keys(escalas).length === 0) return;
+  const jaViu = sessionStorage.getItem('icv-notif');
+  if (jaViu) return;
+  sessionStorage.setItem('icv-notif', '1');
+  const hoje = new Date();
+  const hojeStr = `${String(hoje.getDate()).padStart(2,'0')}/${String(hoje.getMonth()+1).padStart(2,'0')}/${hoje.getFullYear()}`;
+  const avisos = [];
+  Object.values(escalas).forEach(mes => {
+    (mes.linhas||[]).forEach(linha => {
+      if (linha.data === hojeStr) {
+        if (linha.pregadorCentral) avisos.push(`📖 Pregador hoje: ${linha.pregadorCentral}`);
+        if (linha.anciao) avisos.push(`🙏 Ancião hoje: ${linha.anciao}`);
+      }
+    });
+  });
+  if (avisos.length === 0) return;
+  setNotifAviso(avisos);
+  if ('Notification' in window && Notification.permission !== 'denied') {
+    Notification.requestPermission().then(perm => {
+      if (perm === 'granted') {
+        avisos.forEach(a => new Notification('⛪ IASD Votuporanga', { body: a }));
+      }
+    });
+  }
+}, [escalas]);
 
   useEffect(() => {
     cultos.forEach(c => {
