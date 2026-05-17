@@ -563,6 +563,7 @@ export default function App() {
   const [darkMode, setDarkMode]           = useState(true);
   const [toast, setToast]                 = useState('');
   const [mostrarHist, setMostrarHist]     = useState(false);
+  const [notifAviso, setNotifAviso] = useState(null);
 
   // Escala Pregadores
   const [escalas, setEscalas]             = useState({});
@@ -584,6 +585,27 @@ export default function App() {
   const [novaLinhaMidiaModal, setNovaLinhaMidiaModal] = useState(false);
   const [novaLinhaMidia, setNovaLinhaMidia]   = useState({ data:'', dia:'Sábado', turno:'', som:'', midia:'', transmissao:'' });
 
+  const BACK_MAP = {
+  cultoDash:'home', dept:'cultoDash', programa:'cultoDash',
+  novo:'home', escalas:'home', midia:'home',
+};
+useEffect(() => {
+  window.history.pushState({ view }, '', window.location.pathname);
+}, [view]);
+useEffect(() => {
+  const handlePop = () => {
+    const destino = BACK_MAP[view];
+    if (!destino) {
+      const sair = window.confirm('Deseja sair do aplicativo?');
+      if (!sair) window.history.pushState({ view }, '', window.location.pathname);
+      return;
+    }
+    if (view === 'dept') setActiveDept(null);
+    setView(destino);
+  };
+  window.addEventListener('popstate', handlePop);
+  return () => window.removeEventListener('popstate', handlePop);
+}, [view]);
   const C = makeColors(darkMode);
   const s = makeStyles(C);
 
