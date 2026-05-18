@@ -816,6 +816,22 @@ useEffect(() => {
     const linhas = midiaEditando ? midiaLocal : linhasMidia;
     return (
       <div style={s.root}>
+        {notifAviso && (
+  <div style={{ position:'fixed', top:0, left:0, right:0, zIndex:999,
+    background:C.gold, padding:'14px 16px 12px', boxShadow:'0 4px 20px rgba(0,0,0,0.3)' }}>
+    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
+      <div>
+        <div style={{ fontWeight:700, fontSize:13, color:'#0D0B20', marginBottom:4 }}>⛪ Hoje na Igreja</div>
+        {notifAviso.map((a,i) => (
+          <div key={i} style={{ fontSize:15, color:'#0D0B20', fontWeight:600 }}>{a}</div>
+        ))}
+      </div>
+      <button onClick={() => setNotifAviso(null)}
+        style={{ background:'rgba(0,0,0,0.15)', border:'none', borderRadius:20,
+          color:'#0D0B20', padding:'4px 10px', fontSize:13, cursor:'pointer' }}>✕</button>
+    </div>
+  </div>
+)}
         <div style={s.escalaHeader}>
           <div style={{ display:'flex', alignItems:'center', gap:14 }}>
             <Logo size={44}/>
@@ -960,6 +976,22 @@ useEffect(() => {
     const linhas = escalaEditando ? escalaLocal : linhasEscala;
     return (
       <div style={s.root}>
+        {notifAviso && (
+  <div style={{ position:'fixed', top:0, left:0, right:0, zIndex:999,
+    background:C.gold, padding:'14px 16px 12px', boxShadow:'0 4px 20px rgba(0,0,0,0.3)' }}>
+    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
+      <div>
+        <div style={{ fontWeight:700, fontSize:13, color:'#0D0B20', marginBottom:4 }}>⛪ Hoje na Igreja</div>
+        {notifAviso.map((a,i) => (
+          <div key={i} style={{ fontSize:15, color:'#0D0B20', fontWeight:600 }}>{a}</div>
+        ))}
+      </div>
+      <button onClick={() => setNotifAviso(null)}
+        style={{ background:'rgba(0,0,0,0.15)', border:'none', borderRadius:20,
+          color:'#0D0B20', padding:'4px 10px', fontSize:13, cursor:'pointer' }}>✕</button>
+    </div>
+  </div>
+)}
         <div style={s.escalaHeader}>
           <div style={{ display:'flex', alignItems:'center', gap:14 }}>
             <Logo size={44}/>
@@ -1124,6 +1156,22 @@ useEffect(() => {
     }
     return (
       <div style={s.root}>
+        {notifAviso && (
+  <div style={{ position:'fixed', top:0, left:0, right:0, zIndex:999,
+    background:C.gold, padding:'14px 16px 12px', boxShadow:'0 4px 20px rgba(0,0,0,0.3)' }}>
+    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
+      <div>
+        <div style={{ fontWeight:700, fontSize:13, color:'#0D0B20', marginBottom:4 }}>⛪ Hoje na Igreja</div>
+        {notifAviso.map((a,i) => (
+          <div key={i} style={{ fontSize:15, color:'#0D0B20', fontWeight:600 }}>{a}</div>
+        ))}
+      </div>
+      <button onClick={() => setNotifAviso(null)}
+        style={{ background:'rgba(0,0,0,0.15)', border:'none', borderRadius:20,
+          color:'#0D0B20', padding:'4px 10px', fontSize:13, cursor:'pointer' }}>✕</button>
+    </div>
+  </div>
+)}
         <header style={s.header}>
           <Logo size={52}/>
           <div style={s.headerTxt}>
