@@ -599,6 +599,7 @@ export default function App() {
   const [novaLinhaModal, setNovaLinhaModal] = useState(false);
   const [novaLinha, setNovaLinha]         = useState({ data:'', dia:'Sábado', pregadorCentral:'', anciao:'', igrejaDistrito:'—', pregadorDistrito:'' });
   const [verPassadasEscala, setVerPassadasEscala] = useState(false);
+  const [verPassadasMidia, setVerPassadasMidia] = useState(false);
 
   // Escala Mídia
   const [escalasMidia, setEscalasMidia]       = useState({});
@@ -887,20 +888,24 @@ export default function App() {
           {(() => {
             const hoje2 = new Date();
             const hojeId = `${hoje2.getFullYear()}-${String(hoje2.getMonth()+1).padStart(2,'0')}-${String(hoje2.getDate()).padStart(2,'0')}`;
-            const qtdPassadas = linhas.filter(l => l.id < hojeId).length;
-            return !escalaEditando && qtdPassadas > 0 ? (
-              <button onClick={() => setVerPassadasEscala(v=>!v)}
+            const qtdPassadas = linhas.filter(l => l.id.replace('-ja','') < hojeId).length;
+            return !midiaEditando && qtdPassadas > 0 ? (
+              <button onClick={() => setVerPassadasMidia(v=>!v)}
                 style={{ width:'100%', background:'transparent', border:`1px dashed ${C.border}`, color:C.muted, borderRadius:10, padding:'10px', fontSize:13, cursor:'pointer', marginBottom:12 }}>
-                {verPassadasEscala ? '▲ Ocultar datas anteriores' : `▼ Ver ${qtdPassadas} data(s) anterior(es)`}
+                {verPassadasMidia ? '▲ Ocultar datas anteriores' : `▼ Ver ${qtdPassadas} data(s) anterior(es)`}
               </button>
             ) : null;
           })()}
           {linhas.map((linha, idx) => {
+            const hoje2 = new Date();
+            const hojeId = `${hoje2.getFullYear()}-${String(hoje2.getMonth()+1).padStart(2,'0')}-${String(hoje2.getDate()).padStart(2,'0')}`;
+            const isPast = linha.id.replace('-ja','') < hojeId;
+            if (isPast && !midiaEditando && !verPassadasMidia) return null;
             const isSab = linha.dia === 'Sábado' && !linha.turno;
             const isJA  = linha.turno === 'J.A';
             const cardSt = isJA ? s.escalaRowJA : isSab ? s.escalaRowSab : s.escalaRow;
             return (
-              <div key={linha.id||idx} style={cardSt}>
+              <div key={linha.id||idx} style={{ ...cardSt, opacity: isPast ? 0.5 : 1 }}>
                 {!midiaEditando ? (
                   <>
                     {!isJA && <div style={s.escalaData}>{linha.data}</div>}
@@ -1055,6 +1060,17 @@ export default function App() {
         )}
 
         <div style={{ padding:'0 20px 20px' }}>
+          {(() => {
+            const hoje2 = new Date();
+            const hojeId = `${hoje2.getFullYear()}-${String(hoje2.getMonth()+1).padStart(2,'0')}-${String(hoje2.getDate()).padStart(2,'0')}`;
+            const qtdPassadas = linhas.filter(l => l.id < hojeId).length;
+            return !escalaEditando && qtdPassadas > 0 ? (
+              <button onClick={() => setVerPassadasEscala(v=>!v)}
+                style={{ width:'100%', background:'transparent', border:`1px dashed ${C.border}`, color:C.muted, borderRadius:10, padding:'10px', fontSize:13, cursor:'pointer', marginBottom:12 }}>
+                {verPassadasEscala ? '▲ Ocultar datas anteriores' : `▼ Ver ${qtdPassadas} data(s) anterior(es)`}
+              </button>
+            ) : null;
+          })()}
           {linhas.map((linha, idx) => {
             const hoje2 = new Date();
             const hojeId = `${hoje2.getFullYear()}-${String(hoje2.getMonth()+1).padStart(2,'0')}-${String(hoje2.getDate()).padStart(2,'0')}`;
