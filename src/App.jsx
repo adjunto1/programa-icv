@@ -1043,14 +1043,34 @@ export default function App() {
         )}
 
         <div style={{ padding:'0 20px 20px' }}>
-          {linhas.map((linha, idx) => {
-            const isSab = linha.dia === 'Sábado';
-            const cardSt = isSab ? s.escalaRowSab : s.escalaRow;
+          {(() => {
+            const hoje2 = new Date();
+            const hojeId = `${hoje2.getFullYear()}-${String(hoje2.getMonth()+1).padStart(2,'0')}-${String(hoje2.getDate()).padStart(2,'0')}`;
+            const passadas = linhas.filter(l => l.id < hojeId);
+            const futuras  = linhas.filter(l => l.id >= hojeId);
+            const [verPassadas, setVerPassadas] = React.useState(false);
+            const linhasVisiveis = escalaEditando ? linhas : [...(verPassadas ? passadas : []), ...futuras];
             return (
-              <div key={linha.id||idx} style={cardSt}>
+              <>
+                {!escalaEditando && passadas.length > 0 && (
+                  <button onClick={() => setVerPassadas(v=>!v)}
+                    style={{ width:'100%', background:'transparent', border:`1px dashed ${C.border}`, color:C.muted, borderRadius:10, padding:'10px', fontSize:13, cursor:'pointer', marginBottom:12 }}>
+                    {verPassadas ? '▲ Ocultar datas anteriores' : `▼ Ver ${passadas.length} data(s) anterior(es)`}
+                  </button>
+                )}
+                {linhasVisiveis.map((linha, idx) => {
+            const isSab = linha.dia === 'Sábado';
+            const isHoje = linha.id === hojeId;
+            const cardSt = isSab ? s.escalaRowSab : s.escalaRow;
+            const isPast = linha.id < hojeId;
+            return (
+              <div key={linha.id||idx} style={{ ...cardSt, opacity: isPast ? 0.5 : 1 }}>
                 {!escalaEditando ? (
                   <>
-                    <div style={s.escalaData}>{linha.data}</div>
+                    <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                      <div style={s.escalaData}>{linha.data}</div>
+                      {isHoje && <span style={{ background:C.green, color:'#fff', borderRadius:20, padding:'2px 10px', fontSize:11, fontWeight:700 }}>HOJE</span>}
+                    </div>
                     <div style={s.escalaDia}>{linha.dia}</div>
                     <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
                       <div><div style={s.escalaLabel}>Central</div><div style={linha.pregadorCentral?s.escalaValue:s.escalaEmpty}>{linha.pregadorCentral||'—'}</div></div>
@@ -1101,6 +1121,9 @@ export default function App() {
               </div>
             );
           })}
+              </>
+            );
+          })()}
           {escalaEditando && (
             <button style={s.btnAddLinha} onClick={() => setNovaLinhaModal(true)}>+ Adicionar data especial</button>
           )}
