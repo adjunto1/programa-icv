@@ -598,6 +598,7 @@ export default function App() {
   const [senhaEscala, setSenhaEscala]     = useState(false);
   const [novaLinhaModal, setNovaLinhaModal] = useState(false);
   const [novaLinha, setNovaLinha]         = useState({ data:'', dia:'Sábado', pregadorCentral:'', anciao:'', igrejaDistrito:'—', pregadorDistrito:'' });
+  const [verPassadasEscala, setVerPassadasEscala] = useState(false);
 
   // Escala Mídia
   const [escalasMidia, setEscalasMidia]       = useState({});
@@ -883,6 +884,17 @@ export default function App() {
         )}
 
         <div style={{ padding:'0 20px 20px' }}>
+          {(() => {
+            const hoje2 = new Date();
+            const hojeId = `${hoje2.getFullYear()}-${String(hoje2.getMonth()+1).padStart(2,'0')}-${String(hoje2.getDate()).padStart(2,'0')}`;
+            const qtdPassadas = linhas.filter(l => l.id < hojeId).length;
+            return !escalaEditando && qtdPassadas > 0 ? (
+              <button onClick={() => setVerPassadasEscala(v=>!v)}
+                style={{ width:'100%', background:'transparent', border:`1px dashed ${C.border}`, color:C.muted, borderRadius:10, padding:'10px', fontSize:13, cursor:'pointer', marginBottom:12 }}>
+                {verPassadasEscala ? '▲ Ocultar datas anteriores' : `▼ Ver ${qtdPassadas} data(s) anterior(es)`}
+              </button>
+            ) : null;
+          })()}
           {linhas.map((linha, idx) => {
             const isSab = linha.dia === 'Sábado' && !linha.turno;
             const isJA  = linha.turno === 'J.A';
@@ -1043,26 +1055,14 @@ export default function App() {
         )}
 
         <div style={{ padding:'0 20px 20px' }}>
-          {(() => {
+          {linhas.map((linha, idx) => {
             const hoje2 = new Date();
             const hojeId = `${hoje2.getFullYear()}-${String(hoje2.getMonth()+1).padStart(2,'0')}-${String(hoje2.getDate()).padStart(2,'0')}`;
-            const passadas = linhas.filter(l => l.id < hojeId);
-            const futuras  = linhas.filter(l => l.id >= hojeId);
-            const [verPassadas, setVerPassadas] = React.useState(false);
-            const linhasVisiveis = escalaEditando ? linhas : [...(verPassadas ? passadas : []), ...futuras];
-            return (
-              <>
-                {!escalaEditando && passadas.length > 0 && (
-                  <button onClick={() => setVerPassadas(v=>!v)}
-                    style={{ width:'100%', background:'transparent', border:`1px dashed ${C.border}`, color:C.muted, borderRadius:10, padding:'10px', fontSize:13, cursor:'pointer', marginBottom:12 }}>
-                    {verPassadas ? '▲ Ocultar datas anteriores' : `▼ Ver ${passadas.length} data(s) anterior(es)`}
-                  </button>
-                )}
-                {linhasVisiveis.map((linha, idx) => {
             const isSab = linha.dia === 'Sábado';
             const isHoje = linha.id === hojeId;
-            const cardSt = isSab ? s.escalaRowSab : s.escalaRow;
             const isPast = linha.id < hojeId;
+            const cardSt = isSab ? s.escalaRowSab : s.escalaRow;
+            if (isPast && !escalaEditando && !verPassadasEscala) return null;
             return (
               <div key={linha.id||idx} style={{ ...cardSt, opacity: isPast ? 0.5 : 1 }}>
                 {!escalaEditando ? (
@@ -1121,9 +1121,6 @@ export default function App() {
               </div>
             );
           })}
-              </>
-            );
-          })()}
           {escalaEditando && (
             <button style={s.btnAddLinha} onClick={() => setNovaLinhaModal(true)}>+ Adicionar data especial</button>
           )}
