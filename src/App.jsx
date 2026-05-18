@@ -1,6 +1,30 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { db } from './firebase';
 import { ref, onValue, set } from 'firebase/database';
+import { getMessaging, getToken, onMessage } from 'firebase/messaging';
+
+const VAPID_KEY = 'BOhZrxORkJ02nvlzxuVyuX-DVAMnypiDgRbhO4T-0Gu6Cjdbr28COOtiWoKXjzmiqGkOI_LrTFHQ-DmC6moEX2o';
+
+async function registrarNotificacoes() {
+  try {
+    if (!('serviceWorker' in navigator)) return;
+    await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+    const messaging = getMessaging();
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') return;
+    const token = await getToken(messaging, { vapidKey: VAPID_KEY });
+    if (token) {
+      const hash = token.slice(-20);
+      await set(ref(db, `tokens/${hash}`), { token, atualizado: Date.now() });
+    }
+    onMessage(messaging, payload => {
+      const { title, body } = payload.notification || {};
+      if (title) new Notification(title, { body, icon: '/logo192.png' });
+    });
+  } catch (e) {
+    console.warn('FCM:', e);
+  }
+}
 
 const CLOUD_NAME    = 'ddetpsxfo';
 const UPLOAD_PRESET = 'pregadores_icv';
@@ -586,38 +610,23 @@ export default function App() {
   const [novaLinhaMidia, setNovaLinhaMidia]   = useState({ data:'', dia:'Sábado', turno:'', som:'', midia:'', transmissao:'' });
 
   const BACK_MAP = {
-    cultoDash: 'home',
-    dept:      'cultoDash',
-    programa:  'cultoDash',
-    novo:      'home',
-    escalas:   'home',
-    midia:     'home',
+    cultoDash:'home', dept:'cultoDash', programa:'cultoDash',
+    novo:'home', escalas:'home', midia:'home',
   };
-
-  // Empurra estado no histórico sempre que a view muda
   useEffect(() => {
-    window.history.pushState({ view }, '', window.location.pathname);
-  }, [view]);
-
-  // Intercepta botão voltar do celular
+    window.history.pushState({ view: 'home' }, '', window.location.pathname);
+  }, []);
   useEffect(() => {
-    const handlePop = (e) => {
-      // Pega a view atual via ref para evitar closure stale
+    const handlePop = () => {
       setView(currentView => {
         const destino = BACK_MAP[currentView];
         if (!destino) {
-          // Está na home — pergunta se quer sair
           const sair = window.confirm('Deseja sair do aplicativo?');
-          if (sair) {
-            window.history.back();
-          } else {
-            window.history.pushState({ view: currentView }, '', window.location.pathname);
-          }
+          if (!sair) window.history.pushState({}, '', window.location.pathname);
           return currentView;
         }
-        // Navega para tela anterior
         if (currentView === 'dept') setActiveDept(null);
-        window.history.pushState({ view: destino }, '', window.location.pathname);
+        window.history.pushState({}, '', window.location.pathname);
         return destino;
       });
     };
@@ -689,13 +698,7 @@ export default function App() {
   });
   if (avisos.length === 0) return;
   setNotifAviso(avisos);
-  if ('Notification' in window && Notification.permission !== 'denied') {
-    Notification.requestPermission().then(perm => {
-      if (perm === 'granted') {
-        avisos.forEach(a => new Notification('⛪ IASD Votuporanga', { body: a }));
-      }
-    });
-  }
+  registrarNotificacoes();
 }, [escalas]);
 
   useEffect(() => {
