@@ -586,26 +586,44 @@ export default function App() {
   const [novaLinhaMidia, setNovaLinhaMidia]   = useState({ data:'', dia:'Sábado', turno:'', som:'', midia:'', transmissao:'' });
 
   const BACK_MAP = {
-  cultoDash:'home', dept:'cultoDash', programa:'cultoDash',
-  novo:'home', escalas:'home', midia:'home',
-};
-useEffect(() => {
-  window.history.pushState({ view }, '', window.location.pathname);
-}, [view]);
-useEffect(() => {
-  const handlePop = () => {
-    const destino = BACK_MAP[view];
-    if (!destino) {
-      const sair = window.confirm('Deseja sair do aplicativo?');
-      if (!sair) window.history.pushState({ view }, '', window.location.pathname);
-      return;
-    }
-    if (view === 'dept') setActiveDept(null);
-    setView(destino);
+    cultoDash: 'home',
+    dept:      'cultoDash',
+    programa:  'cultoDash',
+    novo:      'home',
+    escalas:   'home',
+    midia:     'home',
   };
-  window.addEventListener('popstate', handlePop);
-  return () => window.removeEventListener('popstate', handlePop);
-}, [view]);
+
+  // Empurra estado no histórico sempre que a view muda
+  useEffect(() => {
+    window.history.pushState({ view }, '', window.location.pathname);
+  }, [view]);
+
+  // Intercepta botão voltar do celular
+  useEffect(() => {
+    const handlePop = (e) => {
+      // Pega a view atual via ref para evitar closure stale
+      setView(currentView => {
+        const destino = BACK_MAP[currentView];
+        if (!destino) {
+          // Está na home — pergunta se quer sair
+          const sair = window.confirm('Deseja sair do aplicativo?');
+          if (sair) {
+            window.history.back();
+          } else {
+            window.history.pushState({ view: currentView }, '', window.location.pathname);
+          }
+          return currentView;
+        }
+        // Navega para tela anterior
+        if (currentView === 'dept') setActiveDept(null);
+        window.history.pushState({ view: destino }, '', window.location.pathname);
+        return destino;
+      });
+    };
+    window.addEventListener('popstate', handlePop);
+    return () => window.removeEventListener('popstate', handlePop);
+  }, []);
   const C = makeColors(darkMode);
   const s = makeStyles(C);
 
