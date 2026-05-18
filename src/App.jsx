@@ -613,20 +613,23 @@ export default function App() {
     cultoDash:'home', dept:'cultoDash', programa:'cultoDash',
     novo:'home', escalas:'home', midia:'home',
   };
+
+  // Empurra estado no histórico toda vez que a view muda
   useEffect(() => {
-    window.history.pushState({ view: 'home' }, '', window.location.pathname);
-  }, []);
+    window.history.pushState({ view }, '', window.location.pathname);
+  }, [view]);
+
+  // Intercepta botão voltar do celular
   useEffect(() => {
     const handlePop = () => {
       setView(currentView => {
         const destino = BACK_MAP[currentView];
         if (!destino) {
           const sair = window.confirm('Deseja sair do aplicativo?');
-          if (!sair) window.history.pushState({}, '', window.location.pathname);
+          if (!sair) window.history.pushState({ view: currentView }, '', window.location.pathname);
           return currentView;
         }
         if (currentView === 'dept') setActiveDept(null);
-        window.history.pushState({}, '', window.location.pathname);
         return destino;
       });
     };
