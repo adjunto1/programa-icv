@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { db } from './firebase';
 import { ref, onValue, set } from 'firebase/database';
 import { getMessaging, getToken, onMessage } from 'firebase/messaging';
+import app from './firebase';
 
 const VAPID_KEY = 'BOhZrxORkJ02nvlzxuVyuX-DVAMnypiDgRbhO4T-0Gu6Cjdbr28COOtiWoKXjzmiqGkOI_LrTFHQ-DmC6moEX2o';
 
@@ -9,7 +10,7 @@ async function registrarNotificacoes() {
   try {
     if (!('serviceWorker' in navigator)) return;
     await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-    const messaging = getMessaging();
+    const messaging = getMessaging(app);
     const perm = await Notification.requestPermission();
     if (perm !== 'granted') return;
     const token = await getToken(messaging, { vapidKey: VAPID_KEY });
