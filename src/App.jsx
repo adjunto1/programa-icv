@@ -687,7 +687,7 @@ export default function App() {
   }, []);
   // Registrar token FCM sempre que o app abre
   useEffect(() => {
-    registrarNotificacoes();
+  if ('Notification' in window && Notification.permission === 'granted') registrarNotificacoes();
   }, []);
 
   // Banner do culto hoje — sem sessionStorage, aparece sempre
@@ -1242,6 +1242,7 @@ export default function App() {
             <div style={s.titleSub}>Sistema de Programa do Culto</div>
             <div style={s.versiculo}>{VERSICULO}<br/><span style={s.versRef}>{VERSICULO_REF}</span></div>
             <button style={s.themeBtn} onClick={toggleTheme}>{darkMode?'☀️ Tema claro':'🌙 Tema escuro'}</button>
+            <button style={s.themeBtn} onClick={() => registrarNotificacoes()}>🔔 Ativar notificações</button>
           </div>
         </header>
         <div style={s.listTop}>
