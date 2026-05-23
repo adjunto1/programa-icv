@@ -7,15 +7,20 @@ import app from './firebase';
 const VAPID_KEY = 'BOhZrxORkJO2nvIzxuVyuX-DVAMnypiDgRbh04T-0Gu6Cjdbr28COOtiWoKXjzmiqGkOI_LrTFHQ-DmC6moEX2o';
 async function registrarNotificacoes() {
   try {
-    if (!('serviceWorker' in navigator)) return;
-    await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-    const messaging = getMessaging(app);
+if (!('serviceWorker' in navigator)) return;
+    const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+    await navigator.serviceWorker.ready;
     const perm = await Notification.requestPermission();
     if (perm !== 'granted') return;
-    const token = await getToken(messaging, { vapidKey: VAPID_KEY });
+    const messaging = getMessaging(app);
+    const token = await getToken(messaging, {
+      vapidKey: VAPID_KEY,
+      serviceWorkerRegistration: registration
+    });
     if (token) {
       const hash = token.slice(-20);
       await set(ref(db, `tokens/${hash}`), { token, atualizado: Date.now() });
+      console.log('Token FCM salvo:', hash);
     }
     onMessage(messaging, payload => {
       const { title, body } = payload.notification || {};
@@ -687,7 +692,7 @@ export default function App() {
   }, []);
   // Registrar token FCM sempre que o app abre
   useEffect(() => {
-  if ('Notification' in window && Notification.permission === 'granted') registrarNotificacoes();
+ registrarNotificacoes();
   }, []);
 
   // Banner do culto hoje — sem sessionStorage, aparece sempre
