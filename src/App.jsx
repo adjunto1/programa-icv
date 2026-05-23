@@ -4,9 +4,8 @@ import { ref, onValue, set } from 'firebase/database';
 import { getMessaging, getToken, onMessage } from 'firebase/messaging';
 import app from './firebase';
 
-const VAPID_KEY = 'BOhZrxORkJO2nvIzxuVyuX-DVAMnypiDgRbh04T-0Gu6Cjdbr28COOtiWoKXjzmiqGkOI_LrTFHQ-DmC6moEX2o';
-async function registrarNotificacoes() {
-  try {
+const VAPID_KEY = 'BOhZrxORkJ02nvlzxuVyuX-DVAMnypiDgRbhO4T-0Gu6Cjdbr28COOtiWoKXjzmiqGkOI_LrTFHQ-DmC6moEX2o';
+try {
 if (!('serviceWorker' in navigator)) return;
     const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
     await navigator.serviceWorker.ready;
