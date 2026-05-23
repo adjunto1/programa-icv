@@ -2,7 +2,7 @@ importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js'
 importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js');
 
 firebase.initializeApp({
-  apiKey: "AIzaSyAuva1NIWiRO29jluYKrgjuUnGSgbAgQbs",
+  apiKey: "AIzaSyAuva1NIWiRO29jluYKrgjuUnGSgbAgObs",
   authDomain: "programa-icv.firebaseapp.com",
   databaseURL: "https://programa-icv-default-rtdb.firebaseio.com",
   projectId: "programa-icv",
