@@ -5,8 +5,10 @@ import { getMessaging, getToken, onMessage } from 'firebase/messaging';
 import app from './firebase';
 
 const VAPID_KEY = 'BOhZrxORkJ02nvIzxuVyuX-DVAMnypiDgRbh04T-0Gu6Cjdbr28COOtiWoKXjzmiqGkOI_LrTFHQ-DmC6moEX2o';
-try {
-if (!('serviceWorker' in navigator)) return;
+
+async function registrarNotificacoes() {
+  try {
+    if (!('serviceWorker' in navigator)) return;
     const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
     await navigator.serviceWorker.ready;
     const perm = await Notification.requestPermission();
@@ -42,7 +44,7 @@ async function uploadFoto(file) {
   return data.secure_url;
 }
 
-const LOGO_SRC = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABDgAAAQ4CAYAAADsEGyPAADNkklEQVR4nOzddZhtZd3G8S+HQ9ehke4QEKQFaRBpEBQEFERCQOlUlEZBwMAAFUVEuru7G4wXAenukK73jzUj42Zix1rr96y1vp/rmguYs9fz3CJnzsy9nxgLSZLUNGMDEwATARP2/f2EA/6+/2P8vo/xBnyMC4zT9/ej+/5+7L6/HxsYNeCvY/V9DPRx38dHwId9f/0IeL/vn98HPgDeG/Dx7oCPd/o+3m75eKvv463+v5ckSVJFtH7TIUmSqmEcYEzLx+QDPsYAkw34mBiYpO+vE/NJmTFuiZnL8B6flB7/6ft4o+/jdeBV4LUBHy9DkiQlwIJDkqR0jAtMBUzd9zFN38e0A95NAnYDtgM2A1YMTSRJUrM8A+wMfBo4ETi2tQ2wbVgqSZIkSVIYCw5JklQH+wJHA68Hno8OI0mSJEnSnxTlWQkAAP//7NdJqhAEEED/ATqbqAtNXMhF3MQFxEBTEFE3Iir+/idBBDGS6urq6goOct9JJAmhqiQDAAAAAAAAAAA=";
+const LOGO_SRC = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABDgAAAQ4CAYAAADsEGyPAADNkklEQVR4nOzddZhtZd3G8S+HQ9ehke4QEKQFaRBpEBQEFERCQOlUlEZBwMAAFUVEuru7G4wXAenukK73jzUj42Zix1rr96y1vp/rmguYs9fz3CJnzsy9nxgLSZLUNGMDEwATARP2/f2EA/6+/2P8vo/xBnyMC4zT9/ej+/5+7L6/HxsYNeCvY/V9DPRx38dHwId9f/0IeL/vn98HPgDeG/Dx7oCPd/o+3m75eKvv423gzb6/ftDjvydJklQhrd90SJKkahgHGNPyMfmAjzHAZAM+JgYm6fvrxHxSZoxbYuYyvMcnpcd/+j7e6Pt4HXgNeHXAxysDPvo/91rfOJIkqUIsOCRJSse4wFTA1H0f0/R9TDvgc1MCU/R9TEpWUig/75AVHK8AL/V9vAi8ADwHPN/38cKAD8sQSZISYMEhSVI5JiQrKj4DzABM3/fXz/R9TEtWZkxBtt1D6fsAeJlPyo9n+j6eAp7u++szwLNk22ckSVKBLDgkScrHhGSFxYzAzAM+ZuKTImPKsHSK9DKfFB9PAI8P+Hiy78MCRJKkHllwSJLUvknJSotZgdn7PmYDZiErNiww1I2XyUqOx4BHgIf7/voIWQnyWlw0SZKqw4JDkqT/NYqssJgdmAuYs+9jdrJyY7K4aGqg18lKjkeAB4GH+v76MFkh8mFcNEmS0mLBIUlqqrHJVl/MBcwLzAPM3ffPMwbmktr1FFnh8QBwP/Cvvr9/BK/IlSQ1kAWHJKkJpicrMD7b9zEfFhmqr6fJio7/A/7Z9/EvskJEkqTasuCQJNXJKLJVGPMDCwIL9P39nHgziZrtQ7LVHv8E/tb38Q+yIsRtLpKkWrDgkCRV1ThkW0s+ByzU99f5cVWG1ImnyEqP+4B7+v56P/BeYCZJkrpiwSFJqoq5gYWBRYDPk63OmD4ykFRTzwJ/B+4G7iQrPv4VGUiSpHZYcEiSUjQz2YqMzwGLkhUbs0cGkhruUbKi406yVR739X1OkqRkWHBIkqKNS1ZkLA4sQVZoLIB/Rkmp+wdZ4XEbcDtwL/BuaCJJUqP5zaMkqWxjyLaZLNX3sRjwmchAknLxLFnhcUvfx53AK6GJJEmNYsEhSaGmIVudsTTwBbIVGpOGJpKUgnfJVnXcBNxAtsrDwkOSlBsLDklSryYh22qyLLA82WqNCUITSaqCd8nO7rgWuJ6s8HgtNJEkqdIsOCRJnRqL7DDQ5fs+vgBMHppIUh28Rrad5dq+j9uAD0MTSZIqxYJDktSOOYDlgJXIVmrMEhtHUgM8QbaV5SqywuPB2DiSpNRZcEiSBjMB2Rkaq5CVGovFxpEk7gKuBi4nKz7ejI0jSUqNBYck9duSQv9oRLYAAAAASUVORK5CYII=";
 function Logo({ size=48, style={} }) {
   return <img src={LOGO_SRC} alt="IASD" width={size} height={size}
     style={{ borderRadius:'50%', background:'#fff', objectFit:'contain', flexShrink:0, ...style }} />;
