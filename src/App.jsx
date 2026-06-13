@@ -752,6 +752,23 @@ export default function App() {
       }
     });
   }, [cultos]);
+  // ── AUTO-CRIAR PRÓXIMO SÁBADO ─────────────────────────────────────────────
+  useEffect(() => {
+    if (cultos.length === 0) return;
+    const hoje = new Date();
+    const dowHoje = hoje.getDay();
+    const diasAteSabado = dowHoje === 6 ? 7 : (6 - dowHoje);
+    const proximo = new Date(hoje);
+    proximo.setDate(hoje.getDate() + diasAteSabado);
+    const proximoId = `${proximo.getFullYear()}-${String(proximo.getMonth()+1).padStart(2,'0')}-${String(proximo.getDate()).padStart(2,'0')}`;
+    const jaExiste = cultos.some(c => c.tipo === 'Sábado' && c.data === proximoId);
+    if (!jaExiste) {
+      const nome = `Culto de Sábado – ${String(proximo.getDate()).padStart(2,'0')}/${String(proximo.getMonth()+1).padStart(2,'0')}/${proximo.getFullYear()}`;
+      const c = newCulto(nome, proximoId, 'Sábado');
+      set(ref(db, `cultos/${c.id}`), c);
+    }
+  }, [cultos]);
+  // ─────────────────────────────────────────────────────────────────────────
 
   const cultoAtivo  = cultos.find(c => c.id === activeCultoId);
   const tipo        = cultoAtivo?.tipo || '';
